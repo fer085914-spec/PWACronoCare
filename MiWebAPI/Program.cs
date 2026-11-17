@@ -27,18 +27,21 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Publica el frontend creado con HTML, CSS y JavaScript desde wwwroot.
-
-// === NUEVA CONFIGURACIÓN PARA EL SPLASH SCREEN ===
-var options = new DefaultFilesOptions();
-options.DefaultFileNames.Clear();
-options.DefaultFileNames.Add("splash.html");
-app.UseDefaultFiles(options);
-// ==================================================
-
-app.UseStaticFiles();
+// 1. IMPORTANTE: Habilita CORS antes de los archivos estáticos y controladores
 app.UseCors("NuevaPolitica");
+
+// 2. Configura los archivos estáticos (HTML, CSS, JS desde wwwroot)
+app.UseStaticFiles();
+
+// 3. Configura el archivo inicial (Splash Screen) si deseas que cargue primero
+var optionsFiles = new DefaultFilesOptions();
+optionsFiles.DefaultFileNames.Clear();
+optionsFiles.DefaultFileNames.Add("splash.html");
+app.UseDefaultFiles(optionsFiles);
+
 app.UseAuthorization();
+
+// 4. Mapea los controladores de la API (/api/...)
 app.MapControllers();
 
 app.Run();
