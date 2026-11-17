@@ -269,11 +269,35 @@
             }
         }
 
+        //async function cargarTiposPerfil() {
+        //    const select = document.getElementById('tipoPerfilModal');
+
+        //    try {
+        //        const tipos = await llamarApi(`${API}/catalogos/tipos-perfil`);
+        //        tipos.forEach((tipo) => {
+        //            const opcion = document.createElement('option');
+        //            opcion.value = tipo.idTipoPerfil;
+        //            opcion.textContent = tipo.nombre;
+        //            select.appendChild(opcion);
+        //        });
+        //    } catch (error) {
+        //        console.error('Error al cargar los tipos de perfil:', error);
+        //    }
+        //}
         async function cargarTiposPerfil() {
             const select = document.getElementById('tipoPerfilModal');
+            if (!select) return;
 
             try {
                 const tipos = await llamarApi(`${API}/catalogos/tipos-perfil`);
+
+                select.innerHTML = '<option value="" disabled selected>Selecciona una opción</option>';
+
+                if (!tipos || tipos.length === 0) {
+                    console.warn("No se encontraron tipos de perfil en la base de datos.");
+                    return;
+                }
+
                 tipos.forEach((tipo) => {
                     const opcion = document.createElement('option');
                     opcion.value = tipo.idTipoPerfil;
