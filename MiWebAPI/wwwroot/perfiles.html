@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CronoCare - Perfiles de Cuidado</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'crono-blue': '#27749C',
+                        'crono-light': '#E1F4F6',
+                        'crono-teal': '#287F89',
+                        'crono-dark': '#222222'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col">
+
+    <div id="sidebar" class="fixed inset-y-0 right-0 w-64 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
+        <div class="p-5 bg-crono-blue text-white flex justify-between items-center">
+            <span class="font-bold text-lg">Menú CronoCare</span>
+            <button id="closeSidebar" class="text-white hover:text-gray-200">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="flex flex-col p-6 gap-6">
+            <a href="index.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-xl">🏠</span> Inicio
+            </a>
+            <a href="hoy.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-xl">📅</span> Agenda de Hoy
+            </a>
+            <a href="nuevo_farmaco.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-xl">➕</span> Nuevo Registro
+            </a>
+            <a href="listo.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-xl">✅</span> Terminados
+            </a>
+            <hr>
+            <button id="btnCerrarSesionLateral" class="text-left text-red-500 hover:text-red-700 font-semibold flex items-center gap-2">
+                <span class="text-xl">🚪</span> Salir
+            </button>
+        </div>
+    </div>
+
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40 transition-opacity"></div>
+
+    <div class="bg-crono-blue text-white p-4 md:px-8 md:py-5 shadow-md flex justify-between items-center z-10 w-full">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm">
+                <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
+            </div>
+            <h1 class="text-2xl md:text-3xl font-bold tracking-wide">CronoCare</h1>
+        </div>
+        <button id="openSidebar" class="hidden md:block text-white hover:text-crono-light transition-colors">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+    </div>
+
+    <div class="flex-1 pb-24 md:pb-8 w-full max-w-3xl mx-auto flex flex-col p-6 mt-2">
+
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h2 class="text-xl md:text-2xl font-bold text-crono-dark uppercase tracking-wide">PERFILES DE CUIDADO</h2>
+                <p class="text-gray-600 text-sm md:text-base">Haz clic en una tarjeta para registrarle un fármaco</p>
+            </div>
+            <button id="btnAbrirModalNuevoPerfil" class="bg-crono-teal text-white font-bold py-2.5 px-5 rounded-full hover:bg-crono-blue transition-colors text-xs md:text-sm shadow-md flex items-center gap-2">
+                <span>➕</span> Nuevo Perfil
+            </button>
+        </div>
+
+        <div id="listaPerfiles" class="flex flex-col gap-4">
+            <div class="bg-white p-6 rounded-2xl shadow-sm text-center">
+                <p class="text-gray-500">Cargando perfiles...</p>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="modalPerfil" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl flex flex-col gap-5 relative animate-fade-in">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-lg font-bold text-crono-dark">Crear Perfil de Cuidado</h3>
+                <button id="btnCerrarModal" type="button" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+            </div>
+
+            <form id="formNuevoPerfil" class="flex flex-col gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1 pl-1">Parentesco / Tipo de perfil:</label>
+                    <select id="tipoPerfilModal" class="w-full bg-gray-50 border-2 border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-crono-teal" required>
+                        <option value="" disabled selected>Selecciona una opción</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1 pl-1">Nombre completo:</label>
+                    <input type="text" id="nombrePacienteModal" maxlength="100" placeholder="Ej. Ana García" class="w-full bg-gray-50 border-2 border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-crono-teal" required>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1 pl-1">Fecha de nacimiento:</label>
+                    <input type="date" id="fechaNacimientoModal" class="w-full bg-gray-50 border-2 border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-crono-teal text-center" required>
+                </div>
+
+                <div class="flex gap-3 mt-4">
+                    <button type="button" id="btnCancelarModal" class="w-1/2 bg-gray-200 text-gray-700 font-bold py-3 rounded-full hover:bg-gray-300 transition-colors text-xs uppercase tracking-wider">
+                        Cancelar
+                    </button>
+                    <button type="submit" id="btnGuardarPerfil" class="w-1/2 bg-crono-teal text-white font-bold py-3 rounded-full hover:bg-crono-blue transition-colors text-xs uppercase tracking-wider shadow-md disabled:opacity-60">
+                        Guardar Perfil
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="md:hidden fixed bottom-0 w-full h-16 bg-white border-t border-gray-200 flex justify-between items-center px-2 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-30">
+        <a href="index.html" class="flex flex-col items-center text-gray-400 hover:text-crono-teal w-1/5 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            <span class="text-[9px] font-bold mt-1">INICIO</span>
+        </a>
+        <a href="hoy.html" class="flex flex-col items-center text-gray-400 hover:text-crono-teal w-1/5 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+            <span class="text-[9px] font-bold mt-1">HOY</span>
+        </a>
+        <a href="listo.html" class="flex flex-col items-center text-gray-400 hover:text-crono-teal w-1/5 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="text-[9px] font-bold mt-1">LISTO</span>
+        </a>
+        <button id="btnCerrarSesion" class="flex flex-col items-center text-gray-400 hover:text-red-500 w-1/5 transition-colors" onclick="cerrarSesion()">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+            <span class="text-[9px] font-bold mt-1">SALIR</span>
+        </button>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        const openBtn = document.getElementById('openSidebar');
+        const closeBtn = document.getElementById('closeSidebar');
+
+        function toggleMenu() {
+            if (sidebar && overlay) {
+                sidebar.classList.toggle('translate-x-full');
+                overlay.classList.toggle('hidden');
+            }
+        }
+        if (openBtn) openBtn.addEventListener('click', toggleMenu);
+        if (closeBtn) closeBtn.addEventListener('click', toggleMenu);
+        if (overlay) overlay.addEventListener('click', toggleMenu);
+
+
+        const CLAVE_SESION = 'usuarioLogueado';
+
+        function obtenerUsuarioSesion() {
+            const guardado = localStorage.getItem(CLAVE_SESION);
+            if (!guardado) return null;
+
+            try {
+                const u = JSON.parse(guardado);
+                const id = u.id ?? u.idUsuario;
+                return id ? { id: Number(id), nombre: u.nombre, tipoUso: u.tipoUso } : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function cerrarSesion() {
+            sessionStorage.removeItem(CLAVE_SESION);
+            sessionStorage.removeItem('perfilSeleccionado');
+            window.location.replace('login.html');
+        }
+
+        const API = '/api/Auth';
+
+        async function llamarApi(url, opciones) {
+            const respuesta = await fetch(url, opciones);
+            let datos = null;
+            try { datos = await respuesta.json(); } catch (e) { /* sin cuerpo JSON */ }
+
+            if (!respuesta.ok) {
+                throw new Error((datos && datos.message) || 'No se pudo completar la solicitud.');
+            }
+            return datos;
+        }
+
+        function crearElemento(etiqueta, clases, texto) {
+            const elemento = document.createElement(etiqueta);
+            if (clases) elemento.className = clases;
+            if (texto !== undefined) elemento.textContent = texto;
+            return elemento;
+        }
+
+        function formatearFecha(iso) {
+            if (!iso) return '';
+            const [anio, mes, dia] = iso.split('-');
+            return `${dia}/${mes}/${anio}`;
+        }
+
+        let cantidadPerfiles = 0;
+
+        function mostrarMensajeLista(texto) {
+            const contenedor = document.getElementById('listaPerfiles');
+            contenedor.replaceChildren();
+
+            const caja = crearElemento('div', 'bg-white p-6 rounded-2xl shadow-sm text-center');
+            caja.appendChild(crearElemento('p', 'text-gray-500', texto));
+            contenedor.appendChild(caja);
+        }
+
+        function crearTarjetaPerfil(perfil) {
+            const tarjeta = crearElemento('div',
+                'bg-white p-5 rounded-2xl shadow-sm border-2 border-crono-teal flex items-center justify-between relative cursor-pointer hover:bg-crono-light/20 transition-all');
+            tarjeta.tabIndex = 0;
+            tarjeta.setAttribute('role', 'button');
+
+            const izquierda = crearElemento('div', 'flex items-center gap-4');
+            izquierda.appendChild(crearElemento('div',
+                'w-12 h-12 bg-crono-light text-crono-teal rounded-full flex items-center justify-center font-bold text-xl', '👤'));
+
+            const info = crearElemento('div');
+            const fila = crearElemento('div', 'flex items-center gap-2 flex-wrap');
+            fila.appendChild(crearElemento('h3', 'font-bold text-crono-dark text-lg', perfil.nombre));
+            fila.appendChild(crearElemento('span',
+                'bg-crono-teal text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase', perfil.tipoPerfil));
+            info.appendChild(fila);
+            info.appendChild(crearElemento('p', 'text-xs text-gray-500 mt-1',
+                `Edad: ${perfil.edad} años | Fecha Nac: ${formatearFecha(perfil.fechaNacimiento)}`));
+            izquierda.appendChild(info);
+
+            tarjeta.appendChild(izquierda);
+            tarjeta.appendChild(crearElemento('span', 'text-crono-teal font-bold text-sm hidden md:block', 'Seleccionar →'));
+
+            tarjeta.addEventListener('click', () => seleccionarPerfil(perfil));
+            tarjeta.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    seleccionarPerfil(perfil);
+                }
+            });
+
+            return tarjeta;
+        }
+
+        async function cargarPerfiles(idUsuario) {
+            const contenedor = document.getElementById('listaPerfiles');
+
+            try {
+                const perfiles = await llamarApi(`${API}/perfiles/${idUsuario}`);
+                cantidadPerfiles = perfiles.length;
+
+                if (perfiles.length === 0) {
+                    mostrarMensajeLista('No tienes perfiles creados todavía. Usa el botón "Nuevo Perfil" para crear el primero.');
+                    return;
+                }
+
+                contenedor.replaceChildren();
+                perfiles.forEach((perfil) => contenedor.appendChild(crearTarjetaPerfil(perfil)));
+            } catch (error) {
+                console.error('Error al listar perfiles:', error);
+                mostrarMensajeLista('No se pudieron cargar tus perfiles. Recarga la página.');
+            }
+        }
+
+        async function cargarTiposPerfil() {
+            const select = document.getElementById('tipoPerfilModal');
+
+            try {
+                const tipos = await llamarApi(`${API}/catalogos/tipos-perfil`);
+                tipos.forEach((tipo) => {
+                    const opcion = document.createElement('option');
+                    opcion.value = tipo.idTipoPerfil;
+                    opcion.textContent = tipo.nombre;
+                    select.appendChild(opcion);
+                });
+            } catch (error) {
+                console.error('Error al cargar los tipos de perfil:', error);
+            }
+        }
+
+        function seleccionarPerfil(perfil) {
+            const perfilActivo = {
+                idPerfil: perfil.idPerfil,
+                nombre: perfil.nombre,
+                parentesco: perfil.tipoPerfil
+            };
+            sessionStorage.setItem('perfilSeleccionado', JSON.stringify(perfilActivo));
+            window.location.href = 'nuevo_farmaco.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const usuario = obtenerUsuarioSesion();
+
+            if (!usuario) {
+                window.location.replace('login.html');
+                return;
+            }
+
+            cargarPerfiles(usuario.id);
+            cargarTiposPerfil();
+
+            const modal = document.getElementById('modalPerfil');
+            const btnAbrir = document.getElementById('btnAbrirModalNuevoPerfil');
+            const btnCerrar = document.getElementById('btnCerrarModal');
+            const btnCancelar = document.getElementById('btnCancelarModal');
+            const formNuevoPerfil = document.getElementById('formNuevoPerfil');
+            const btnGuardar = document.getElementById('btnGuardarPerfil');
+            const selectTipo = document.getElementById('tipoPerfilModal');
+            const campoFecha = document.getElementById('fechaNacimientoModal');
+
+            const ahora = new Date();
+            campoFecha.max = new Date(ahora.getTime() - ahora.getTimezoneOffset() * 60000)
+                .toISOString().slice(0, 10);
+
+            if (btnAbrir) {
+                btnAbrir.addEventListener('click', () => {
+                    if (cantidadPerfiles === 0 && usuario.tipoUso !== 'cuidador') {
+                        const propio = Array.from(selectTipo.options)
+                            .find((o) => o.textContent.trim().toLowerCase() === 'propio');
+                        if (propio) selectTipo.value = propio.value;
+                    }
+                    modal.classList.remove('hidden');
+                });
+            }
+            if (btnCerrar) btnCerrar.addEventListener('click', () => modal.classList.add('hidden'));
+            if (btnCancelar) btnCancelar.addEventListener('click', () => modal.classList.add('hidden'));
+
+            if (formNuevoPerfil) {
+                formNuevoPerfil.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+
+                    const nombre = document.getElementById('nombrePacienteModal').value.trim();
+
+                    const nuevoPerfil = {
+                        idUsuario: usuario.id,
+                        idTipoPerfil: Number(selectTipo.value),
+                        nombre: nombre,
+                        fechaNacimiento: campoFecha.value
+                    };
+
+                    btnGuardar.disabled = true;
+
+                    try {
+                        await llamarApi(`${API}/perfil/crear`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(nuevoPerfil)
+                        });
+
+                        alert(`¡Perfil de ${nombre} guardado con éxito!`);
+                        modal.classList.add('hidden');
+                        formNuevoPerfil.reset();
+                        cargarPerfiles(usuario.id);
+                    } catch (error) {
+                        console.error('Error al guardar el perfil:', error);
+                        alert('No se pudo guardar el perfil: ' + error.message);
+                    } finally {
+                        btnGuardar.disabled = false;
+                    }
+                });
+            }
+
+            document.getElementById('btnCerrarSesionLateral')?.addEventListener('click', cerrarSesion);
+        });
+    </script>
+</body>
+</html>
