@@ -49,10 +49,10 @@ formRegistro.addEventListener("submit", async (evento) => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                nombre: nombre.value.trim(),
-                correo: valorCorreo,
-                contrasena: valorPassword,
-                tipoUso: tipoUso
+                Nombre: nombre.value.trim(),
+                Correo: valorCorreo,
+                password: valorPassword, // Coincide con [JsonPropertyName("password")]
+                TipoUso: tipoUso
             })
         });
 
