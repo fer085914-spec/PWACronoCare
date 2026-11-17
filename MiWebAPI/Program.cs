@@ -10,11 +10,20 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<EmpleadoData>();
 
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("NuevaPolitica", app =>
+//    {
+//        app.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+//    });
+//});
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("NuevaPolitica", app =>
+    options.AddPolicy("NuevaPolitica", policy =>
     {
-        app.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
     });
 });
 
