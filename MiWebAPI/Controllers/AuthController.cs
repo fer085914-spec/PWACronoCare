@@ -377,11 +377,11 @@ public class AuthController : ControllerBase
                         {
                             idMedicamento = reader["ID_MEDICAMENTO"],
                             nombreMedicamento = reader["NOMBRE_MEDICAMENTO"].ToString(),
-                            idVia = reader["ID_VIA"], // <--- ¡AQUÍ ESTABA EL FALTANTE PARA EL SELECT!
+                            idVia = reader["ID_VIA"],
                             viaAdministracion = reader["VIA_ADMINISTRACION"].ToString(),
-                            intervaloHoras = reader["INTERVALO_HORAS"], // <--- También agregamos intervalo y duración por seguridad
+                            intervaloHoras = reader["INTERVALO_HORAS"],
                             duracionDias = reader["DURACION_DIAS"],
-                            horaPrimeraToma = reader["HORA_PRIMERA_TOMA"].ToString(), // <--- ¡AQUÍ ESTABA EL FALTANTE PARA LA HORA!
+                            horaPrimeraToma = reader["HORA_PRIMERA_TOMA"].ToString(),
                             foto = reader["FOTO"] != DBNull.Value ? reader["FOTO"].ToString() : null,
                             tomas = new List<object>()
                         };
@@ -393,6 +393,7 @@ public class AuthController : ControllerBase
                             {
                                 ((List<object>)medicamentoDetalle.tomas).Add(new
                                 {
+                                    fechaHoraProgramada = reader["FECHA_HORA_PROGRAMADA"], // <--- Agregado para que JS agrupe por día
                                     hora = Convert.ToDateTime(reader["FECHA_HORA_PROGRAMADA"]).ToString("HH:mm"),
                                     estado = reader["ESTADO"].ToString()
                                 });
@@ -463,12 +464,11 @@ public class AuthController : ControllerBase
         {
             using (SqlConnection conn = new SqlConnection(CadenaSql))
             {
-                // Puedes usar un UPDATE directo si no tienes un SP para actualizar la toma
                 string query = "UPDATE TOMA SET ID_ESTADO = (SELECT ID_ESTADO FROM ESTADO_TOMA WHERE NOMBRE = @NuevoEstado), FECHA_HORA_CONFIRMADA = GETDATE() WHERE ID_TOMA = @IdToma";
                 using (SqlCommand cmd = new SqlCommand(query, conn))
                 {
                     cmd.Parameters.AddWithValue("@IdToma", modelo.IdToma);
-                    cmd.Parameters.AddWithValue("@NuevoEstado", modelo.NuevoEstado); // 'Tomada' u 'Omitida'
+                    cmd.Parameters.AddWithValue("@NuevoEstado", modelo.NuevoEstado);
 
                     conn.Open();
                     cmd.ExecuteNonQuery();
@@ -499,7 +499,7 @@ public class AuthController : ControllerBase
                     cmd.Parameters.AddWithValue("@Foto", string.IsNullOrEmpty(modelo.Foto) ? (object)DBNull.Value : modelo.Foto);
                     cmd.Parameters.AddWithValue("@IntervaloHoras", modelo.IntervaloHoras);
                     cmd.Parameters.AddWithValue("@DuracionDias", modelo.DuracionDias);
-                    cmd.Parameters.AddWithValue("@HoraPrimeraToma", modelo.HoraPrimeraToma); // Formato "HH:mm"
+                    cmd.Parameters.AddWithValue("@HoraPrimeraToma", modelo.HoraPrimeraToma);
 
                     conn.Open();
                     using (SqlDataReader reader = cmd.ExecuteReader())
@@ -537,7 +537,6 @@ public class AuthController : ControllerBase
         {
             using (SqlConnection conn = new SqlConnection(CadenaSql))
             {
-                // Primero obtenemos todos los perfiles que le pertenecen al usuario
                 var perfilesIds = new List<long>();
                 using (SqlCommand cmdPerfil = new SqlCommand("SELECT ID_PERFIL FROM PERFIL_CUIDADO WHERE ID_USUARIO = @IdUsuario", conn))
                 {
@@ -552,7 +551,6 @@ public class AuthController : ControllerBase
                     }
                 }
 
-                // Para cada perfil, traemos sus medicamentos concluidos usando tu SP original
                 foreach (var idPerfil in perfilesIds)
                 {
                     using (SqlCommand cmd = new SqlCommand("sp_Medicamento_ListarConcluidos", conn))
@@ -616,7 +614,7 @@ public class AuthController : ControllerBase
                                 nombreMedicamento = reader["NOMBRE_MEDICAMENTO"].ToString(),
                                 foto = reader["FOTO"] != DBNull.Value ? reader["FOTO"].ToString() : null,
                                 idPerfil = reader["ID_PERFIL"],
-                                nombrePerfil = reader["NOMBRE_PERFIL"].ToString(), // Perfil al que pertenece
+                                nombrePerfil = reader["NOMBRE_PERFIL"].ToString(),
                                 fechaInicio = Convert.ToDateTime(reader["FECHA_INICIO"]).ToString("yyyy-MM-dd"),
                                 fechaConclusion = Convert.ToDateTime(reader["FECHA_FIN"]).ToString("yyyy-MM-dd"),
                                 diasTomados = reader["DIAS_TOMADOS"],
@@ -693,11 +691,11 @@ public class MedicamentoCreacionDto
     public long IdPerfil { get; set; }
     public long IdVia { get; set; }
     public string NombreMedicamento { get; set; }
-    public string? Foto { get; set; } = null; // Opcional
+    public string? Foto { get; set; } = null;
     public int IntervaloHoras { get; set; }
     public int DuracionDias { get; set; }
-    public string HoraInicio { get; set; } // Coincide con TIME
-    public DateTime? FechaInicio { get; set; } = null; // Opcional
+    public string HoraInicio { get; set; }
+    public DateTime? FechaInicio { get; set; } = null;
 }
 
 public class TomaActualizacionDto
