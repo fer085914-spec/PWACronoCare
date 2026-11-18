@@ -116,17 +116,17 @@
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
             <span class="text-[9px] font-bold mt-1">INICIO</span>
         </a>
-        <button class="flex flex-col items-center text-gray-400 hover:text-crono-teal w-1/5 transition-colors">
+        <a href="hoy.html" class="flex flex-col items-center text-gray-400 hover:text-crono-teal w-1/5 transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
             <span class="text-[9px] font-bold mt-1">HOY</span>
-        </button>
+        </a>
         <a href="nuevo_farmaco.html" class="relative -top-6 bg-crono-teal text-white w-14 h-14 rounded-full flex items-center justify-center text-4xl shadow-lg border-4 border-white transition-transform pb-1 z-50">
             +
         </a>
-        <button class="flex flex-col items-center text-gray-400 hover:text-crono-teal w-1/5 transition-colors">
+        <a href="listo.html" class="flex flex-col items-center text-gray-400 hover:text-crono-teal w-1/5 transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <span class="text-[9px] font-bold mt-1">LISTO</span>
-        </button>
+        </a>
         <button class="flex flex-col items-center text-gray-400 hover:text-red-500 w-1/5 transition-colors" onclick="sessionStorage.removeItem('empleados_usuario'); window.location.replace('login.html');">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
             <span class="text-[9px] font-bold mt-1">SALIR</span>
@@ -220,10 +220,6 @@
                     // Agrupar las tomas por fecha (YYYY-MM-DD)
                     const tomasPorFecha = {};
                     listaTomas.forEach(toma => {
-                        // Si tu API manda fechaHora o solo hora, ajusta según corresponda.
-                        // Asumiremos que viene una propiedad 'fechaHoraProgramada' o 'fecha' o usamos la fecha actual si viene plana.
-                        // Nota: Si tu objeto toma solo trae la propiedad 'hora' (ej. "14:30"), agrupamos por el día actual o fecha asignada.
-                        // Asegúrate de que el objeto toma incluya la fecha completa o fechaHoraProgramada desde el backend.
                         const fechaCompleta = toma.fechaHoraProgramada ? new Date(toma.fechaHoraProgramada) : new Date();
                         const anio = fechaCompleta.getFullYear();
                         const mes = String(fechaCompleta.getMonth() + 1).padStart(2, '0');
@@ -245,23 +241,22 @@
                     Object.keys(tomasPorFecha).sort().forEach(fechaKey => {
                         const tomasDelDia = tomasPorFecha[fechaKey];
 
-                        // Título de la sección de fecha
-                        let etiquetaFecha = fechaKey;
+                        // Título de la sección de fecha dinámico (si es hoy dice "Hoy", si no, muestra la fecha amigable)
+                        let etiquetaFecha = "";
                         if (fechaKey === hoyKey) {
                             etiquetaFecha = "Hoy";
                         } else {
-                            // Formato amigable ej. "Jue, 19 nov"
                             const [yyyy, mm, dd] = fechaKey.split('-');
                             const d = new Date(yyyy, mm - 1, dd);
                             etiquetaFecha = d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
                         }
 
-                        // Agregar cabecera del día
+                        // Agregar cabecera del día con la fecha formateada
                         const headerFechaHTML = `
-                                <div class="flex items-center gap-2 mt-2 mb-1 text-black font-semibold">
-                                    <span class="text-xl">📅</span> <span class="capitalize">${etiquetaFecha}</span>
-                                </div>
-                            `;
+                                    <div class="flex items-center gap-2 mt-4 mb-1 text-black font-semibold border-b pb-1">
+                                        <span class="text-xl">📅</span> <span class="capitalize">${etiquetaFecha}</span>
+                                    </div>
+                                `;
                         contenedorTomas.innerHTML += headerFechaHTML;
 
                         // Renderizar las tomas de este día
@@ -273,48 +268,48 @@
 
                             if (estado === "Tomada") {
                                 htmlToma = `
-                                        <div class="flex items-center justify-between p-2">
-                                            <div class="flex items-center gap-4">
-                                                <div class="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center text-gray-600 bg-transparent">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                            <div class="flex items-center justify-between p-2">
+                                                <div class="flex items-center gap-4">
+                                                    <div class="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center text-gray-600 bg-transparent">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                    </div>
+                                                    <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
                                                 </div>
-                                                <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
-                                            </div>
-                                            <span class="text-gray-600 text-xs font-semibold mr-4">Tomada</span>
-                                        </div>`;
+                                                <span class="text-gray-600 text-xs font-semibold mr-4">Tomada</span>
+                                            </div>`;
                             } else if (estado === "Toca" || estado === "¡TOCA!") {
                                 htmlToma = `
-                                        <div class="flex items-center justify-between bg-crono-teal/30 p-2 rounded-2xl border border-crono-teal">
-                                            <div class="flex items-center gap-4">
-                                                <div class="w-8 h-8 rounded-full border border-black flex items-center justify-center text-black bg-transparent">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                            <div class="flex items-center justify-between bg-crono-teal/30 p-2 rounded-2xl border border-crono-teal">
+                                                <div class="flex items-center gap-4">
+                                                    <div class="w-8 h-8 rounded-full border border-black flex items-center justify-center text-black bg-transparent">
+                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                    </div>
+                                                    <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
                                                 </div>
-                                                <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
-                                            </div>
-                                            <span class="text-crono-teal text-xs font-bold mr-4">¡TOCA!</span>
-                                        </div>`;
+                                                <span class="text-crono-teal text-xs font-bold mr-4">¡TOCA!</span>
+                                            </div>`;
                             } else if (estado === "Omitida") {
                                 htmlToma = `
-                                        <div class="flex items-center justify-between p-2 opacity-60">
-                                            <div class="flex items-center gap-4">
-                                                <div class="w-8 h-8 rounded-full border border-red-400 flex items-center justify-center text-red-500 bg-transparent">
-                                                    <span class="font-bold text-sm">✕</span>
+                                            <div class="flex items-center justify-between p-2 opacity-60">
+                                                <div class="flex items-center gap-4">
+                                                    <div class="w-8 h-8 rounded-full border border-red-400 flex items-center justify-center text-red-500 bg-transparent">
+                                                        <span class="font-bold text-sm">✕</span>
+                                                    </div>
+                                                    <span class="font-semibold text-gray-600 text-sm">Toma ${numeroToma} (${horaToma})</span>
                                                 </div>
-                                                <span class="font-semibold text-gray-600 text-sm">Toma ${numeroToma} (${horaToma})</span>
-                                            </div>
-                                            <span class="text-red-500 text-xs font-semibold mr-4">Omitida</span>
-                                        </div>`;
+                                                <span class="text-red-500 text-xs font-semibold mr-4">Omitida</span>
+                                            </div>`;
                             } else {
                                 htmlToma = `
-                                        <div class="flex items-center justify-between p-2">
-                                            <div class="flex items-center gap-4">
-                                                <div class="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center text-gray-600 bg-transparent">
-                                                    <span class="font-bold text-sm">!</span>
+                                            <div class="flex items-center justify-between p-2">
+                                                <div class="flex items-center gap-4">
+                                                    <div class="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center text-gray-600 bg-transparent">
+                                                        <span class="font-bold text-sm">!</span>
+                                                    </div>
+                                                    <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
                                                 </div>
-                                                <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
-                                            </div>
-                                            <span class="text-gray-400 text-xs font-semibold mr-4">Pendiente</span>
-                                        </div>`;
+                                                <span class="text-gray-400 text-xs font-semibold mr-4">Pendiente</span>
+                                            </div>`;
                             }
 
                             contenedorTomas.innerHTML += htmlToma;
