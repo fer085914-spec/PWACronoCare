@@ -96,39 +96,11 @@
             <div class="flex flex-col">
                 <h3 class="font-bold text-black mb-4 text-lg md:text-xl">Tomas programadas</h3>
 
-                <div class="flex items-center gap-2 mb-4 text-black font-semibold">
-                    <span class="text-xl">📅</span> Hoy
-                </div>
-
-                <div class="flex flex-col gap-4 md:pl-2">
-                    <div class="flex items-center justify-between p-2">
-                        <div class="flex items-center gap-4">
-                            <div class="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center text-gray-600 bg-transparent">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                            </div>
-                            <span class="font-semibold text-black text-sm">Toma 1</span>
-                        </div>
-                        <span class="text-black text-xs font-semibold mr-4">Tomada</span>
+                <!-- Contenedor dinámico donde se agruparán por día y se listarán las tomas -->
+                <div class="flex flex-col gap-6 md:pl-2" id="contenedorTomas">
+                    <div class="flex items-center gap-2 mb-2 text-black font-semibold">
+                        <span class="text-xl">📅</span> Cargando tomas...
                     </div>
-                    <div class="flex items-center justify-between bg-crono-teal/30 p-2 rounded-2xl">
-                        <div class="flex items-center gap-4">
-                            <div class="w-8 h-8 rounded-full border border-black flex items-center justify-center text-black bg-transparent">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            </div>
-                            <span class="font-semibold text-black text-sm">Toma 2</span>
-                        </div>
-                        <span class="text-black text-xs font-semibold mr-4">¡TOCA!</span>
-                    </div>
-                    <div class="flex items-center justify-between p-2">
-                        <div class="flex items-center gap-4">
-                            <div class="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center text-gray-600 bg-transparent">
-                                <span class="font-bold text-sm">!</span>
-                            </div>
-                            <span class="font-semibold text-black text-sm">Toma 3</span>
-                        </div>
-                        <span class="text-black text-xs font-semibold mr-4">Pendiente</span>
-                    </div>
-
                 </div>
             </div>
 
@@ -234,70 +206,119 @@
                     btnEditar.href = `editar_farmaco.html?id=${idMedicamento}`;
                 }
 
-                const contenedorTomas = document.querySelector(".flex.flex-col.gap-4.md\\:pl-2");
+                const contenedorTomas = document.getElementById("contenedorTomas");
                 const listaTomas = data.tomas || [];
 
                 if (contenedorTomas) {
                     contenedorTomas.innerHTML = "";
 
                     if (listaTomas.length === 0) {
-                        contenedorTomas.innerHTML = `<p class="text-gray-500 text-sm">No hay tomas programadas para hoy.</p>`;
+                        contenedorTomas.innerHTML = `<p class="text-gray-500 text-sm">No hay tomas pendientes programadas.</p>`;
                         return;
                     }
 
-                    listaTomas.forEach((toma, index) => {
-                        let htmlToma = "";
-                        const numeroToma = index + 1;
-                        const horaToma = toma.hora || '';
-                        const estado = toma.estado;
+                    // Agrupar las tomas por fecha (YYYY-MM-DD)
+                    const tomasPorFecha = {};
+                    listaTomas.forEach(toma => {
+                        // Si tu API manda fechaHora o solo hora, ajusta según corresponda.
+                        // Asumiremos que viene una propiedad 'fechaHoraProgramada' o 'fecha' o usamos la fecha actual si viene plana.
+                        // Nota: Si tu objeto toma solo trae la propiedad 'hora' (ej. "14:30"), agrupamos por el día actual o fecha asignada.
+                        // Asegúrate de que el objeto toma incluya la fecha completa o fechaHoraProgramada desde el backend.
+                        const fechaCompleta = toma.fechaHoraProgramada ? new Date(toma.fechaHoraProgramada) : new Date();
+                        const anio = fechaCompleta.getFullYear();
+                        const mes = String(fechaCompleta.getMonth() + 1).padStart(2, '0');
+                        const dia = String(fechaCompleta.getDate()).padStart(2, '0');
+                        const fechaKey = `${anio}-${mes}-${dia}`;
 
-                        if (estado === "Tomada") {
-                            htmlToma = `
-                                <div class="flex items-center justify-between p-2">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center text-gray-600 bg-transparent">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                        </div>
-                                        <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
-                                    </div>
-                                    <span class="text-gray-600 text-xs font-semibold mr-4">Tomada</span>
-                                </div>`;
-                        } else if (estado === "Toca" || estado === "¡TOCA!") {
-                            htmlToma = `
-                                <div class="flex items-center justify-between bg-crono-teal/30 p-2 rounded-2xl border border-crono-teal">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-8 h-8 rounded-full border border-black flex items-center justify-center text-black bg-transparent">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                        </div>
-                                        <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
-                                    </div>
-                                    <span class="text-crono-teal text-xs font-bold mr-4">¡TOCA!</span>
-                                </div>`;
-                        } else if (estado === "Omitida") {
-                            htmlToma = `
-                                <div class="flex items-center justify-between p-2 opacity-60">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-8 h-8 rounded-full border border-red-400 flex items-center justify-center text-red-500 bg-transparent">
-                                            <span class="font-bold text-sm">✕</span>
-                                        </div>
-                                        <span class="font-semibold text-gray-600 text-sm">Toma ${numeroToma} (${horaToma})</span>
-                                    </div>
-                                    <span class="text-red-500 text-xs font-semibold mr-4">Omitida</span>
-                                </div>`;
+                        if (!tomasPorFecha[fechaKey]) {
+                            tomasPorFecha[fechaKey] = [];
+                        }
+                        tomasPorFecha[fechaKey].push(toma);
+                    });
+
+                    // Obtener la fecha de hoy en formato YYYY-MM-DD para comparar
+                    const hoyObj = new Date();
+                    const hoyKey = `${hoyObj.getFullYear()}-${String(hoyObj.getMonth() + 1).padStart(2, '0')}-${String(hoyObj.getDate()).padStart(2, '0')}`;
+
+                    // Renderizar agrupado por días
+                    let contadorGlobalToma = 1;
+                    Object.keys(tomasPorFecha).sort().forEach(fechaKey => {
+                        const tomasDelDia = tomasPorFecha[fechaKey];
+
+                        // Título de la sección de fecha
+                        let etiquetaFecha = fechaKey;
+                        if (fechaKey === hoyKey) {
+                            etiquetaFecha = "Hoy";
                         } else {
-                            htmlToma = `
-                                <div class="flex items-center justify-between p-2">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center text-gray-600 bg-transparent">
-                                            <span class="font-bold text-sm">!</span>
-                                        </div>
-                                        <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
-                                    </div>
-                                    <span class="text-gray-400 text-xs font-semibold mr-4">Pendiente</span>
-                                </div>`;
+                            // Formato amigable ej. "Jue, 19 nov"
+                            const [yyyy, mm, dd] = fechaKey.split('-');
+                            const d = new Date(yyyy, mm - 1, dd);
+                            etiquetaFecha = d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
                         }
 
-                        contenedorTomas.innerHTML += htmlToma;
+                        // Agregar cabecera del día
+                        const headerFechaHTML = `
+                                <div class="flex items-center gap-2 mt-2 mb-1 text-black font-semibold">
+                                    <span class="text-xl">📅</span> <span class="capitalize">${etiquetaFecha}</span>
+                                </div>
+                            `;
+                        contenedorTomas.innerHTML += headerFechaHTML;
+
+                        // Renderizar las tomas de este día
+                        tomasDelDia.forEach(toma => {
+                            let htmlToma = "";
+                            const numeroToma = contadorGlobalToma++;
+                            const horaToma = toma.hora || '';
+                            const estado = toma.estado;
+
+                            if (estado === "Tomada") {
+                                htmlToma = `
+                                        <div class="flex items-center justify-between p-2">
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center text-gray-600 bg-transparent">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                </div>
+                                                <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
+                                            </div>
+                                            <span class="text-gray-600 text-xs font-semibold mr-4">Tomada</span>
+                                        </div>`;
+                            } else if (estado === "Toca" || estado === "¡TOCA!") {
+                                htmlToma = `
+                                        <div class="flex items-center justify-between bg-crono-teal/30 p-2 rounded-2xl border border-crono-teal">
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-8 h-8 rounded-full border border-black flex items-center justify-center text-black bg-transparent">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                </div>
+                                                <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
+                                            </div>
+                                            <span class="text-crono-teal text-xs font-bold mr-4">¡TOCA!</span>
+                                        </div>`;
+                            } else if (estado === "Omitida") {
+                                htmlToma = `
+                                        <div class="flex items-center justify-between p-2 opacity-60">
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-8 h-8 rounded-full border border-red-400 flex items-center justify-center text-red-500 bg-transparent">
+                                                    <span class="font-bold text-sm">✕</span>
+                                                </div>
+                                                <span class="font-semibold text-gray-600 text-sm">Toma ${numeroToma} (${horaToma})</span>
+                                            </div>
+                                            <span class="text-red-500 text-xs font-semibold mr-4">Omitida</span>
+                                        </div>`;
+                            } else {
+                                htmlToma = `
+                                        <div class="flex items-center justify-between p-2">
+                                            <div class="flex items-center gap-4">
+                                                <div class="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center text-gray-600 bg-transparent">
+                                                    <span class="font-bold text-sm">!</span>
+                                                </div>
+                                                <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
+                                            </div>
+                                            <span class="text-gray-400 text-xs font-semibold mr-4">Pendiente</span>
+                                        </div>`;
+                            }
+
+                            contenedorTomas.innerHTML += htmlToma;
+                        });
                     });
                 }
 
@@ -306,6 +327,5 @@
             }
         });
     </script>
-
 </body>
 </html>
