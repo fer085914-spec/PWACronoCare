@@ -111,6 +111,10 @@
                 <button type="submit" id="btnGuardarCambios" class="w-full bg-crono-blue text-white font-bold py-3 rounded-full hover:bg-blue-700 transition-colors shadow-md text-sm tracking-wide">
                     GUARDAR CAMBIOS
                 </button>
+                <!-- Botón Descartar Cambios -->
+                <button type="button" id="btnDescartar" class="w-full bg-gray-200 text-gray-700 font-bold py-3 rounded-full hover:bg-gray-300 transition-colors shadow-sm text-sm tracking-wide">
+                    DESCARTAR CAMBIOS
+                </button>
             </div>
 
         </form>
@@ -172,6 +176,18 @@
 
             await cargarViasAdministracion();
             await cargarDatosMedicamento(usuario.id, idMedicamento);
+
+            // Lógica del botón Descartar Cambios
+            const btnDescartar = document.getElementById("btnDescartar");
+            if (btnDescartar) {
+                btnDescartar.addEventListener("click", () => {
+                    const seguro = confirm("¿Estás seguro que quieres descartar los cambios?");
+                    if (seguro) {
+                        window.location.replace(`detalle_farmaco.html?id=${idMedicamento}`);
+                    }
+                    // Si le da en Cancelar, no hace nada y se queda en editar
+                });
+            }
         });
 
         async function cargarViasAdministracion() {
