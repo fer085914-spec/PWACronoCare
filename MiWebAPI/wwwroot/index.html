@@ -184,10 +184,10 @@
 
                 if (!perfiles || perfiles.length === 0) {
                     contenedor.innerHTML = `
-                                <div class="bg-white p-6 rounded-2xl shadow-sm text-center">
-                                    <p class="text-gray-500 mb-2">No tienes perfiles creados todavía.</p>
-                                    <a href="perfiles.html" class="text-crono-teal font-bold hover:underline text-sm">Crear un perfil aquí</a>
-                                </div>`;
+                                    <div class="bg-white p-6 rounded-2xl shadow-sm text-center">
+                                        <p class="text-gray-500 mb-2">No tienes perfiles creados todavía.</p>
+                                        <a href="perfiles.html" class="text-crono-teal font-bold hover:underline text-sm">Crear un perfil aquí</a>
+                                    </div>`;
                     return;
                 }
 
@@ -198,27 +198,27 @@
                     const nombrePerfil = perfil.nombre;
 
                     const cardHTML = `
-                                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                                    <button onclick="toggleAcordeon('perfil-${idPerfil}')" class="w-full p-5 bg-white flex justify-between items-center hover:bg-crono-light/30 transition-colors">
-                                        <div class="flex items-center gap-3">
-                                            <div class="w-10 h-10 bg-crono-light text-crono-teal rounded-full flex items-center justify-center font-bold text-lg">
-                                                👤
+                                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                                        <button onclick="toggleAcordeon('perfil-${idPerfil}')" class="w-full p-5 bg-white flex justify-between items-center hover:bg-crono-light/30 transition-colors">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-10 h-10 bg-crono-light text-crono-teal rounded-full flex items-center justify-center font-bold text-lg">
+                                                    👤
+                                                </div>
+                                                <div class="text-left">
+                                                    <h3 class="font-bold text-crono-dark text-base md:text-lg">${nombrePerfil}</h3>
+                                                    <p class="text-xs text-gray-500" id="contador-${idPerfil}">Cargando medicamentos...</p>
+                                                </div>
                                             </div>
-                                            <div class="text-left">
-                                                <h3 class="font-bold text-crono-dark text-base md:text-lg">${nombrePerfil}</h3>
-                                                <p class="text-xs text-gray-500" id="contador-${idPerfil}">Cargando medicamentos...</p>
-                                            </div>
-                                        </div>
-                                        <svg id="icon-perfil-${idPerfil}" class="w-6 h-6 text-crono-teal transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                        </svg>
-                                    </button>
+                                            <svg id="icon-perfil-${idPerfil}" class="w-6 h-6 text-crono-teal transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                            </svg>
+                                        </button>
 
-                                    <div id="perfil-${idPerfil}" class="hidden flex flex-col gap-3 p-4 bg-gray-50 border-t border-gray-100">
-                                        <!-- Aquí se inyectarán los medicamentos activos -->
+                                        <div id="perfil-${idPerfil}" class="hidden flex flex-col gap-3 p-4 bg-gray-50 border-t border-gray-100">
+                                            <!-- Aquí se inyectarán los medicamentos activos -->
+                                        </div>
                                     </div>
-                                </div>
-                            `;
+                                `;
                     contenedor.innerHTML += cardHTML;
 
                     await cargarMedicamentosPorPerfil(idUsuario, idPerfil);
@@ -255,22 +255,22 @@
                     const tarjeta = document.createElement("div");
                     tarjeta.className = "bg-white rounded-xl p-4 shadow-xs border border-gray-200 relative hover:shadow-md transition-shadow group flex items-start gap-3";
                     tarjeta.innerHTML = `
-        <a href="detalle_farmaco.html?id=${idMed}" class="flex items-start gap-3 flex-1">
-            <div class="w-12 h-12 bg-crono-light rounded-full flex items-center justify-center shrink-0 group-hover:bg-crono-teal transition-colors">
-                <svg class="w-6 h-6 text-crono-blue group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M17.34 6.66a5.5 5.5 0 00-7.78 0L6.66 9.56a5.5 5.5 0 000 7.78 5.5 5.5 0 007.78 0l2.9-2.9a5.5 5.5 0 000-7.78zm-4.24 6.36l-2.12-2.12m5.66-2.12L13.1 5.24"></path>
-                </svg>
-            </div>
-            <div class="flex-1 pr-8">
-                <h4 class="font-bold text-crono-dark text-base leading-tight group-hover:text-crono-teal transition-colors">${nombreMed}</h4>
-                <p class="text-xs text-gray-500 mt-0.5">Vía: <span class="font-medium">${med.viaAdministracion || 'General'}</span></p>
-                <p class="text-xs md:text-sm text-gray-500 mt-0.5">Próxima toma: <span class="font-semibold text-crono-blue">${proximaTomaTexto}</span></p>
-            </div>
-        </a>
-        <button type="button" class="btn-ocultar-med text-gray-400 hover:text-red-500 transition-colors p-2" title="Eliminar medicamento">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2.000 2.000 0 0116.138 21H7.862a2.000 2.000 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-        </button>
-    `;
+            <a href="detalle_farmaco.html?id=${idMed}" class="flex items-start gap-3 flex-1">
+                <div class="w-12 h-12 bg-crono-light rounded-full flex items-center justify-center shrink-0 group-hover:bg-crono-teal transition-colors">
+                    <svg class="w-6 h-6 text-crono-blue group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17.34 6.66a5.5 5.5 0 00-7.78 0L6.66 9.56a5.5 5.5 0 000 7.78 5.5 5.5 0 007.78 0l2.9-2.9a5.5 5.5 0 000-7.78zm-4.24 6.36l-2.12-2.12m5.66-2.12L13.1 5.24"></path>
+                    </svg>
+                </div>
+                <div class="flex-1 pr-8">
+                    <h4 class="font-bold text-crono-dark text-base leading-tight group-hover:text-crono-teal transition-colors">${nombreMed}</h4>
+                    <p class="text-xs text-gray-500 mt-0.5">Vía: <span class="font-medium">${med.viaAdministracion || 'General'}</span></p>
+                    <p class="text-xs md:text-sm text-gray-500 mt-0.5">Próxima toma: <span class="font-semibold text-crono-blue">${proximaTomaTexto}</span></p>
+                </div>
+            </a>
+            <button type="button" class="btn-ocultar-med text-gray-400 hover:text-red-500 transition-colors p-2" title="Eliminar medicamento">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2.000 2.000 0 0116.138 21H7.862a2.000 2.000 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+        `;
 
                     tarjeta.querySelector(".btn-ocultar-med").addEventListener("click", (e) => {
                         e.preventDefault();
