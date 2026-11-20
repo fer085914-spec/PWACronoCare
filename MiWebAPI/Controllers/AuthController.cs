@@ -187,6 +187,7 @@ public class AuthController : ControllerBase
     // PERFILES
     // ---------------------------------------------------------------
 
+    // Solo perfiles visibles que tienen al menos un medicamento activo (para el Index)
     [HttpGet("perfiles/{idUsuario}")]
     public IActionResult ListarPerfiles(long idUsuario)
     {
@@ -197,6 +198,48 @@ public class AuthController : ControllerBase
             using (SqlConnection conn = new SqlConnection(CadenaSql))
             {
                 using (SqlCommand cmd = new SqlCommand("sp_Perfil_ListarPorUsuario", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@IdUsuario", idUsuario);
+
+                    conn.Open();
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            perfiles.Add(new
+                            {
+                                idPerfil = reader["ID_PERFIL"],
+                                nombre = reader["NOMBRE"].ToString(),
+                                fechaNacimiento = Convert.ToDateTime(reader["FECHA_NACIMIENTO"]).ToString("yyyy-MM-dd"),
+                                edad = reader["EDAD"],
+                                idTipoPerfil = reader["ID_TIPO_PERFIL"],
+                                tipoPerfil = reader["TIPO_PERFIL"].ToString()
+                            });
+                        }
+                    }
+                }
+            }
+
+            return Ok(perfiles);
+        }
+        catch (SqlException ex)
+        {
+            return RespuestaError(ex);
+        }
+    }
+
+    // Todos los perfiles visibles del usuario (para selector al registrar/asignar medicamentos)
+    [HttpGet("perfiles/selector/{idUsuario}")]
+    public IActionResult ListarPerfilesParaSelector(long idUsuario)
+    {
+        var perfiles = new List<object>();
+
+        try
+        {
+            using (SqlConnection conn = new SqlConnection(CadenaSql))
+            {
+                using (SqlCommand cmd = new SqlCommand("sp_Perfil_ListarParaSelector", conn))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.AddWithValue("@IdUsuario", idUsuario);
@@ -357,15 +400,11 @@ public class AuthController : ControllerBase
                     cmd.Parameters.AddWithValue("@IdPerfil", modelo.IdPerfil);
                     cmd.Parameters.AddWithValue("@IdVia", modelo.IdVia);
                     cmd.Parameters.AddWithValue("@NombreMedicamento", modelo.NombreMedicamento);
-
-                    // Manejo seguro de la foto (si es null o vacía, manda NULL a SQL)
                     cmd.Parameters.AddWithValue("@Foto", string.IsNullOrEmpty(modelo.Foto) ? (object)DBNull.Value : modelo.Foto);
-
                     cmd.Parameters.AddWithValue("@IntervaloHoras", modelo.IntervaloHoras);
                     cmd.Parameters.AddWithValue("@DuracionDias", modelo.DuracionDias);
                     cmd.Parameters.AddWithValue("@HoraPrimeraToma", modelo.HoraInicio);
 
-                    // Manejo seguro de la fecha de inicio
                     if (modelo.FechaInicio.HasValue)
                     {
                         cmd.Parameters.Add("@FechaInicio", SqlDbType.Date).Value = modelo.FechaInicio.Value.Date;
@@ -423,14 +462,13 @@ public class AuthController : ControllerBase
                             tomas = new List<object>()
                         };
 
-                        // 2. Leer las tomas programadas (Segundo Resultado del SP)
                         if (reader.NextResult())
                         {
                             while (reader.Read())
                             {
                                 ((List<object>)medicamentoDetalle.tomas).Add(new
                                 {
-                                    fechaHoraProgramada = reader["FECHA_HORA_PROGRAMADA"], // <--- Agregado para que JS agrupe por día
+                                    fechaHoraProgramada = reader["FECHA_HORA_PROGRAMADA"],
                                     hora = Convert.ToDateTime(reader["FECHA_HORA_PROGRAMADA"]).ToString("HH:mm"),
                                     estado = reader["ESTADO"].ToString()
                                 });
@@ -460,7 +498,7 @@ public class AuthController : ControllerBase
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.AddWithValue("@IdUsuario", idUsuario);
-                    cmd.Parameters.AddWithValue("@Fecha", DBNull.Value); // Toma el día actual por defecto
+                    cmd.Parameters.AddWithValue("@Fecha", DBNull.Value);
 
                     conn.Open();
                     using (SqlDataReader reader = cmd.ExecuteReader())
@@ -501,21 +539,36 @@ public class AuthController : ControllerBase
         {
             using (SqlConnection conn = new SqlConnection(CadenaSql))
             {
-                string query = "UPDATE TOMA SET ID_ESTADO = (SELECT ID_ESTADO FROM ESTADO_TOMA WHERE NOMBRE = @NuevoEstado), FECHA_HORA_CONFIRMADA = GETDATE() WHERE ID_TOMA = @IdToma";
-                using (SqlCommand cmd = new SqlCommand(query, conn))
+                using (SqlCommand cmd = new SqlCommand("sp_Toma_Registrar", conn))
                 {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@IdUsuario", modelo.IdUsuario);
                     cmd.Parameters.AddWithValue("@IdToma", modelo.IdToma);
-                    cmd.Parameters.AddWithValue("@NuevoEstado", modelo.NuevoEstado);
+                    cmd.Parameters.AddWithValue("@Estado", modelo.NuevoEstado);
 
                     conn.Open();
-                    cmd.ExecuteNonQuery();
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return Ok(new
+                            {
+                                success = true,
+                                message = "Estado actualizado correctamente",
+                                idToma = reader["ID_TOMA"],
+                                estado = reader["ESTADO"].ToString(),
+                                fechaHoraConfirmada = reader["FECHA_HORA_CONFIRMADA"]
+                            });
+                        }
+                    }
                 }
             }
-            return Ok(new { success = true, message = "Estado actualizado correctamente" });
+
+            return BadRequest(new { success = false, message = "No se pudo actualizar la toma." });
         }
-        catch (Exception ex)
+        catch (SqlException ex)
         {
-            return BadRequest(new { success = false, message = ex.Message });
+            return RespuestaError(ex);
         }
     }
 
@@ -674,7 +727,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPut("medicamento/ocultar/{idMedicamento}")]
-    public IActionResult OcultarMedicamento(long idMedicamento)
+    public IActionResult OcultarMedicamento(long idMedicamento, [FromQuery] long? idUsuario = null)
     {
         try
         {
@@ -684,6 +737,7 @@ public class AuthController : ControllerBase
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.AddWithValue("@IdMedicamento", idMedicamento);
+                    cmd.Parameters.AddWithValue("@IdUsuario", (object?)idUsuario ?? DBNull.Value);
 
                     conn.Open();
                     cmd.ExecuteNonQuery();
@@ -737,6 +791,7 @@ public class MedicamentoCreacionDto
 
 public class TomaActualizacionDto
 {
+    public long IdUsuario { get; set; }
     public long IdToma { get; set; }
     public string NuevoEstado { get; set; }
 }
