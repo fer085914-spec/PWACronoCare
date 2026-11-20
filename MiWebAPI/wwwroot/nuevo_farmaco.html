@@ -19,6 +19,7 @@
             }
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col">
@@ -53,12 +54,12 @@
     <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40 transition-opacity"></div>
 
     <div class="bg-crono-blue text-white p-4 md:px-8 md:py-5 shadow-md flex justify-between items-center z-10 w-full">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm">
+        <a href="index.html" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Ir al inicio">
+            <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm rounded-full">
                 <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
             </div>
             <h1 class="text-2xl md:text-3xl font-bold tracking-wide">CronoCare</h1>
-        </div>
+        </a>
         <button id="openSidebar" class="hidden md:block text-white hover:text-crono-light transition-colors">
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
@@ -86,10 +87,17 @@
             <a href="perfiles.html" class="text-xs font-bold text-crono-teal hover:underline bg-white px-3 py-1.5 rounded-full shadow-xs">Cambiar</a>
         </div>
 
-        <!-- Previsualización opcional de la foto si ya fue tomada -->
-        <div id="contenedorPreviewFoto" class="hidden mb-4 w-full h-32 bg-gray-200 rounded-2xl overflow-hidden border border-gray-300 relative shadow-inner">
-            <img id="imgPreviewFoto" src="" alt="Vista previa" class="w-full h-full object-cover">
-            <span class="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded-full">Foto adjuntada</span>
+        <!-- Previsualización de la foto en la parte superior si ya fue tomada -->
+        <div id="contenedorPreviewFoto" class="hidden mb-5 w-full bg-white p-3 rounded-3xl shadow-sm border border-gray-200">
+            <div class="relative w-full h-44 bg-gray-100 rounded-2xl overflow-hidden border border-gray-200">
+                <img id="imgPreviewFoto" src="" alt="Vista previa del fármaco" class="w-full h-full object-cover">
+                <span class="absolute bottom-2 left-2 bg-black/65 text-white text-[11px] font-semibold px-3 py-1 rounded-full">
+                    📷 Fotografía adjuntada
+                </span>
+                <button type="button" id="btnQuitarFoto" class="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow transition-colors">
+                    Quitar
+                </button>
+            </div>
         </div>
 
         <form id="formFarmaco" class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-200 flex flex-col gap-5">
@@ -128,9 +136,14 @@
                 <a href="tomar_fotografia.html" class="w-full bg-crono-teal text-white font-bold py-3 rounded-full hover:bg-crono-blue transition-colors shadow-md text-sm tracking-wide block text-center">
                     TOMAR FOTOGRAFÍA
                 </a>
-                <button type="submit" id="btnGuardar" class="w-full bg-crono-blue text-white font-bold py-3 rounded-full hover:bg-blue-700 transition-colors shadow-md text-sm tracking-wide">
-                    GUARDAR
-                </button>
+                <div class="flex gap-3">
+                    <button type="button" id="btnCancelarRegistro" class="w-1/2 bg-gray-200 text-gray-700 font-bold py-3 rounded-full hover:bg-gray-300 transition-colors shadow-sm text-sm tracking-wide">
+                        CANCELAR
+                    </button>
+                    <button type="submit" id="btnGuardar" class="w-1/2 bg-crono-blue text-white font-bold py-3 rounded-full hover:bg-blue-700 transition-colors shadow-md text-sm tracking-wide">
+                        GUARDAR
+                    </button>
+                </div>
             </div>
 
             <div id="mensajeAlerta" class="hidden text-center font-semibold mt-2 text-sm"></div>
@@ -266,6 +279,37 @@
                 imgPreview.src = fotoTemporal;
                 contenedorPreview.classList.remove('hidden');
             }
+
+            // Quitar foto si el usuario lo desea
+            document.getElementById('btnQuitarFoto')?.addEventListener('click', () => {
+                sessionStorage.removeItem('fotoMedicamentoTemp');
+                if (imgPreview) imgPreview.src = '';
+                if (contenedorPreview) contenedorPreview.classList.add('hidden');
+            });
+
+            // Confirmación para cancelar registro de nuevo fármaco
+            document.getElementById('btnCancelarRegistro')?.addEventListener('click', async () => {
+                const confirmacion = await Swal.fire({
+                    title: '¿Descartar fármaco?',
+                    text: 'Se perderán los datos ingresados para este nuevo medicamento.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, descartar',
+                    cancelButtonText: 'No',
+                    confirmButtonColor: '#287F89',
+                    cancelButtonColor: '#6B7280',
+                    background: '#E1F4F6',
+                    color: '#222222',
+                    customClass: {
+                        popup: 'rounded-3xl shadow-2xl border-2 border-[#287F89]'
+                    }
+                });
+
+                if (confirmacion.isConfirmed) {
+                    sessionStorage.removeItem('fotoMedicamentoTemp');
+                    window.location.replace('index.html');
+                }
+            });
         });
 
         document.getElementById('formFarmaco').addEventListener('submit', async (e) => {
@@ -283,7 +327,6 @@
             btnGuardar.textContent = "GUARDANDO...";
             mensajeAlerta.classList.add("hidden");
 
-            // Recuperamos la foto temporal de la cámara (si existe)
             const fotoCapturada = sessionStorage.getItem('fotoMedicamentoTemp') || null;
 
             const nuevoMedicamento = {
@@ -291,7 +334,7 @@
                 idPerfil: Number(perfilActivo.idPerfil),
                 idVia: Number(document.getElementById('viaAdmin').value),
                 nombreMedicamento: document.getElementById('nombreMedicamento').value.trim(),
-                foto: fotoCapturada, // <--- Aquí se manda la foto en Base64 a tu API
+                foto: fotoCapturada,
                 intervaloHoras: parseInt(document.getElementById('intervalo').value),
                 duracionDias: parseInt(document.getElementById('duracion').value),
                 horaInicio: document.getElementById('horaToma').value,
@@ -305,7 +348,6 @@
                     body: JSON.stringify(nuevoMedicamento)
                 });
 
-                // Limpiamos la foto temporal del sessionStorage ya que se guardó con éxito
                 sessionStorage.removeItem('fotoMedicamentoTemp');
 
                 mensajeAlerta.textContent = "¡Fármaco guardado correctamente!";
