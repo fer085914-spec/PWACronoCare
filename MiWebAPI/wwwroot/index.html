@@ -246,30 +246,39 @@
                 }
 
                 medicamentos.forEach(med => {
-                    const proximaTomaTexto = med.proximaToma ? new Date(med.proximaToma).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Pendiente';
-                    const nombreEscapado = (med.nombreMedicamento || '').replace(/'/g, "\\'");
+                    const idMed = med.idMedicamento ?? med.ID_MEDICAMENTO ?? med.id;
+                    const nombreMed = med.nombreMedicamento ?? med.NOMBRE_MEDICAMENTO ?? 'Medicamento';
+                    const proximaTomaTexto = med.proximaToma
+                        ? new Date(med.proximaToma).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        : 'Pendiente';
 
-                    const farmacoHTML = `
-                                <div class="bg-white rounded-xl p-4 shadow-xs border border-gray-200 relative hover:shadow-md transition-shadow group flex items-start gap-3">
-                                    <a href="detalle_farmaco.html?id=${med.idMedicamento}" class="flex items-start gap-3 flex-1">
-                                        <div class="w-12 h-12 bg-crono-light rounded-full flex items-center justify-center shrink-0 group-hover:bg-crono-teal transition-colors">
-                                            <svg class="w-6 h-6 text-crono-blue group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
-                                                <path d="M17.34 6.66a5.5 5.5 0 00-7.78 0L6.66 9.56a5.5 5.5 0 000 7.78 5.5 5.5 0 007.78 0l2.9-2.9a5.5 5.5 0 000-7.78zm-4.24 6.36l-2.12-2.12m5.66-2.12L13.1 5.24"></path>
-                                            </svg>
-                                        </div>
-                                        <div class="flex-1 pr-8">
-                                            <h4 class="font-bold text-crono-dark text-base leading-tight group-hover:text-crono-teal transition-colors">${med.nombreMedicamento}</h4>
-                                            <p class="text-xs text-gray-500 mt-0.5">Vía: <span class="font-medium">${med.viaAdministracion || 'General'}</span></p>
-                                            <p class="text-xs md:text-sm text-gray-500 mt-0.5">Próxima toma: <span class="font-semibold text-crono-blue">${proximaTomaTexto}</span></p>
-                                        </div>
-                                    </a>
-                                    <!-- Botón de papelera para ocultar/eliminar -->
-                                    <button onclick="confirmarOcultarMedicamento(${med.idMedicamento}, '${nombreEscapado}')" class="text-gray-400 hover:text-red-500 transition-colors p-2" title="Eliminar medicamento">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2.000 2.000 0 0116.138 21H7.862a2.000 2.000 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                    </button>
-                                </div>
-                            `;
-                    contenedorLista.innerHTML += farmacoHTML;
+                    const tarjeta = document.createElement("div");
+                    tarjeta.className = "bg-white rounded-xl p-4 shadow-xs border border-gray-200 relative hover:shadow-md transition-shadow group flex items-start gap-3";
+                    tarjeta.innerHTML = `
+        <a href="detalle_farmaco.html?id=${idMed}" class="flex items-start gap-3 flex-1">
+            <div class="w-12 h-12 bg-crono-light rounded-full flex items-center justify-center shrink-0 group-hover:bg-crono-teal transition-colors">
+                <svg class="w-6 h-6 text-crono-blue group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17.34 6.66a5.5 5.5 0 00-7.78 0L6.66 9.56a5.5 5.5 0 000 7.78 5.5 5.5 0 007.78 0l2.9-2.9a5.5 5.5 0 000-7.78zm-4.24 6.36l-2.12-2.12m5.66-2.12L13.1 5.24"></path>
+                </svg>
+            </div>
+            <div class="flex-1 pr-8">
+                <h4 class="font-bold text-crono-dark text-base leading-tight group-hover:text-crono-teal transition-colors">${nombreMed}</h4>
+                <p class="text-xs text-gray-500 mt-0.5">Vía: <span class="font-medium">${med.viaAdministracion || 'General'}</span></p>
+                <p class="text-xs md:text-sm text-gray-500 mt-0.5">Próxima toma: <span class="font-semibold text-crono-blue">${proximaTomaTexto}</span></p>
+            </div>
+        </a>
+        <button type="button" class="btn-ocultar-med text-gray-400 hover:text-red-500 transition-colors p-2" title="Eliminar medicamento">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2.000 2.000 0 0116.138 21H7.862a2.000 2.000 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+        </button>
+    `;
+
+                    tarjeta.querySelector(".btn-ocultar-med").addEventListener("click", (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        confirmarOcultarMedicamento(idMed, nombreMed);
+                    });
+
+                    contenedorLista.appendChild(tarjeta);
                 });
 
             } catch (error) {
