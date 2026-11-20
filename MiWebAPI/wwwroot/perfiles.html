@@ -19,6 +19,7 @@
             }
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col">
@@ -156,7 +157,6 @@
         if (closeBtn) closeBtn.addEventListener('click', toggleMenu);
         if (overlay) overlay.addEventListener('click', toggleMenu);
 
-
         const CLAVE_SESION = 'usuarioLogueado';
 
         function obtenerUsuarioSesion() {
@@ -173,9 +173,25 @@
         }
 
         function cerrarSesion() {
+            localStorage.removeItem(CLAVE_SESION);
             sessionStorage.removeItem(CLAVE_SESION);
             sessionStorage.removeItem('perfilSeleccionado');
             window.location.replace('login.html');
+        }
+
+        function mostrarAlertaCrono(titulo, mensaje, tipo = 'info', textoBoton = 'Aceptar') {
+            return Swal.fire({
+                title: titulo,
+                text: mensaje,
+                icon: tipo,
+                confirmButtonText: textoBoton,
+                confirmButtonColor: '#287F89',
+                background: '#E1F4F6',
+                color: '#222222',
+                customClass: {
+                    popup: 'rounded-3xl shadow-2xl border-2 border-[#287F89]'
+                }
+            });
         }
 
         const API = '/api/Auth';
@@ -215,19 +231,78 @@
             contenedor.appendChild(caja);
         }
 
+        async function confirmarYOCultarPerfil(perfil) {
+            const usuario = obtenerUsuarioSesion();
+            if (!usuario) {
+                window.location.replace('login.html');
+                return;
+            }
+
+            const confirmacion = await Swal.fire({
+                title: '¿Eliminar perfil?',
+                text: `Se eliminará el perfil de ${perfil.nombre} y todos sus medicamentos (activos o concluidos).`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#287F89',
+                cancelButtonColor: '#6B7280',
+                background: '#E1F4F6',
+                color: '#222222',
+                customClass: {
+                    popup: 'rounded-3xl shadow-2xl border-2 border-[#287F89]'
+                }
+            });
+
+            if (!confirmacion.isConfirmed) return;
+
+            try {
+                await llamarApi(`${API}/perfil/ocultar/${usuario.id}/${perfil.idPerfil}`, {
+                    method: 'DELETE'
+                });
+
+                const guardadoPerfil = sessionStorage.getItem('perfilSeleccionado');
+                if (guardadoPerfil) {
+                    try {
+                        const actual = JSON.parse(guardadoPerfil);
+                        if (Number(actual.idPerfil) === Number(perfil.idPerfil)) {
+                            sessionStorage.removeItem('perfilSeleccionado');
+                        }
+                    } catch (e) {
+                        sessionStorage.removeItem('perfilSeleccionado');
+                    }
+                }
+
+                await cargarPerfiles(usuario.id);
+
+                await mostrarAlertaCrono(
+                    '¡Perfil eliminado!',
+                    `El perfil de ${perfil.nombre} y sus medicamentos han sido eliminados.`,
+                    'success'
+                );
+            } catch (error) {
+                console.error('Error al ocultar perfil:', error);
+                await mostrarAlertaCrono(
+                    'Error',
+                    'No se pudo eliminar el perfil: ' + error.message,
+                    'error'
+                );
+            }
+        }
+
         function crearTarjetaPerfil(perfil) {
             const tarjeta = crearElemento('div',
-                'bg-white p-5 rounded-2xl shadow-sm border-2 border-crono-teal flex items-center justify-between relative cursor-pointer hover:bg-crono-light/20 transition-all');
+                'bg-white p-5 rounded-2xl shadow-sm border-2 border-crono-teal flex items-center justify-between gap-3 relative cursor-pointer hover:bg-crono-light/20 transition-all');
             tarjeta.tabIndex = 0;
             tarjeta.setAttribute('role', 'button');
 
-            const izquierda = crearElemento('div', 'flex items-center gap-4');
+            const izquierda = crearElemento('div', 'flex items-center gap-4 min-w-0');
             izquierda.appendChild(crearElemento('div',
-                'w-12 h-12 bg-crono-light text-crono-teal rounded-full flex items-center justify-center font-bold text-xl', '👤'));
+                'w-12 h-12 bg-crono-light text-crono-teal rounded-full flex items-center justify-center font-bold text-xl flex-shrink-0', '👤'));
 
-            const info = crearElemento('div');
+            const info = crearElemento('div', 'min-w-0');
             const fila = crearElemento('div', 'flex items-center gap-2 flex-wrap');
-            fila.appendChild(crearElemento('h3', 'font-bold text-crono-dark text-lg', perfil.nombre));
+            fila.appendChild(crearElemento('h3', 'font-bold text-crono-dark text-lg truncate', perfil.nombre));
             fila.appendChild(crearElemento('span',
                 'bg-crono-teal text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase', perfil.tipoPerfil));
             info.appendChild(fila);
@@ -235,8 +310,23 @@
                 `Edad: ${perfil.edad} años | Fecha Nac: ${formatearFecha(perfil.fechaNacimiento)}`));
             izquierda.appendChild(info);
 
+            const derecha = crearElemento('div', 'flex items-center gap-3 flex-shrink-0');
+            derecha.appendChild(crearElemento('span', 'text-crono-teal font-bold text-sm hidden md:inline', 'Seleccionar →'));
+
+            const btnEliminar = crearElemento('button',
+                'bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs px-3 py-2 rounded-full border border-red-200 transition-colors',
+                'Eliminar');
+            btnEliminar.type = 'button';
+            btnEliminar.setAttribute('aria-label', `Eliminar perfil de ${perfil.nombre}`);
+            btnEliminar.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await confirmarYOCultarPerfil(perfil);
+            });
+
+            derecha.appendChild(btnEliminar);
+
             tarjeta.appendChild(izquierda);
-            tarjeta.appendChild(crearElemento('span', 'text-crono-teal font-bold text-sm hidden md:block', 'Seleccionar →'));
+            tarjeta.appendChild(derecha);
 
             tarjeta.addEventListener('click', () => seleccionarPerfil(perfil));
             tarjeta.addEventListener('keydown', (e) => {
@@ -269,21 +359,6 @@
             }
         }
 
-        //async function cargarTiposPerfil() {
-        //    const select = document.getElementById('tipoPerfilModal');
-
-        //    try {
-        //        const tipos = await llamarApi(`${API}/catalogos/tipos-perfil`);
-        //        tipos.forEach((tipo) => {
-        //            const opcion = document.createElement('option');
-        //            opcion.value = tipo.idTipoPerfil;
-        //            opcion.textContent = tipo.nombre;
-        //            select.appendChild(opcion);
-        //        });
-        //    } catch (error) {
-        //        console.error('Error al cargar los tipos de perfil:', error);
-        //    }
-        //}
         async function cargarTiposPerfil() {
             const select = document.getElementById('tipoPerfilModal');
             if (!select) return;
@@ -319,12 +394,30 @@
             window.location.href = 'nuevo_farmaco.html';
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const usuario = obtenerUsuarioSesion();
 
             if (!usuario) {
                 window.location.replace('login.html');
                 return;
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            const solicitarSeleccion =
+                params.get('sinPerfil') === '1' ||
+                params.get('aviso') === 'seleccionar' ||
+                params.get('motivo') === 'perfil';
+
+            if (solicitarSeleccion) {
+                await mostrarAlertaCrono(
+                    'Perfil de cuidado requerido',
+                    'Debes seleccionar un perfil de cuidado antes de registrar un fármaco.',
+                    'warning',
+                    'Entendido'
+                );
+
+                const urlLimpia = window.location.pathname;
+                window.history.replaceState({}, document.title, urlLimpia);
             }
 
             cargarPerfiles(usuario.id);
@@ -378,13 +471,22 @@
                             body: JSON.stringify(nuevoPerfil)
                         });
 
-                        alert(`¡Perfil de ${nombre} guardado con éxito!`);
                         modal.classList.add('hidden');
                         formNuevoPerfil.reset();
-                        cargarPerfiles(usuario.id);
+                        await cargarPerfiles(usuario.id);
+
+                        await mostrarAlertaCrono(
+                            '¡Perfil creado!',
+                            `¡Perfil de ${nombre} guardado con éxito!`,
+                            'success'
+                        );
                     } catch (error) {
                         console.error('Error al guardar el perfil:', error);
-                        alert('No se pudo guardar el perfil: ' + error.message);
+                        await mostrarAlertaCrono(
+                            'Error',
+                            'No se pudo guardar el perfil: ' + error.message,
+                            'error'
+                        );
                     } finally {
                         btnGuardar.disabled = false;
                     }

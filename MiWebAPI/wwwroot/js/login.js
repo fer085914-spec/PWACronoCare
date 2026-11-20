@@ -1,8 +1,8 @@
-const formLogin = document.getElementById("loginForm"); 
-const correoInput = document.getElementById("email");    
-const passwordInput = document.getElementById("password"); 
-const btnLogin = document.getElementById("btnLogin");      
-const mensajeLogin = document.getElementById("mensajeLogin"); 
+const formLogin = document.getElementById("loginForm");
+const correoInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+const btnLogin = document.getElementById("btnLogin");
+const mensajeLogin = document.getElementById("mensajeLogin");
 
 if (formLogin) {
     formLogin.addEventListener("submit", async (evento) => {
@@ -36,15 +36,13 @@ if (formLogin) {
 
             localStorage.setItem("usuarioLogueado", JSON.stringify(resultado.usuario));
 
-            alert("¡Bienvenido de nuevo, " + resultado.usuario.nombre + "!");
-            window.location.replace("index.html"); 
+            // Redirección directa sin alerta de bienvenida
+            window.location.replace("index.html");
 
         } catch (error) {
             if (mensajeLogin) {
                 mensajeLogin.textContent = error.message || "Ocurrió un error al conectar con la API.";
                 mensajeLogin.classList.remove("hidden");
-            } else {
-                alert(error.message);
             }
         } finally {
             if (btnLogin) {
