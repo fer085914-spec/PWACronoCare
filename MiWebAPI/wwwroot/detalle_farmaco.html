@@ -54,7 +54,6 @@
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm">
                 <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
-                <a href="index.html"></a>
             </div>
             <h1 class="text-2xl md:text-3xl font-bold tracking-wide">CronoCare</h1>
         </div>
@@ -63,6 +62,7 @@
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
     </div>
+
     <div class="flex-1 pb-24 md:pb-12 w-full max-w-4xl mx-auto flex flex-col p-6 mt-2 relative">
         <div class="flex items-center mb-8 w-full">
             <a href="index.html" class="text-gray-700 hover:text-crono-teal transition-colors flex-shrink-0">
@@ -72,45 +72,53 @@
             </a>
             <h2 class="text-xl md:text-2xl font-bold text-center text-black tracking-wide flex-1 mr-10 uppercase">DETALLE</h2>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 w-full">
 
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 w-full">
+            <!-- Columna Izquierda: Foto y Datos Generales -->
             <div class="flex flex-col gap-4">
-                <div class="w-full h-56 md:h-64 bg-gray-200/50 rounded-xl flex items-center justify-center border-2 border-gray-400 shadow-sm">
+                <!-- CONTENEDOR DE FOTO CORREGIDO CON ID -->
+                <div id="contenedorFoto" class="w-full h-56 md:h-64 bg-gray-200/50 rounded-xl overflow-hidden flex items-center justify-center border-2 border-gray-400 shadow-sm">
                     <span class="text-gray-400 font-bold tracking-widest text-sm md:text-base">FOTO DEL FÁRMACO</span>
                 </div>
+
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
                         <span class="text-xl opacity-100">💊</span>
                     </div>
-                    <input type="text" value="Nombre del medicamento" readonly class="w-full bg-transparent border border-gray-700 rounded-full pl-14 pr-4 py-3 text-gray-800 font-semibold focus:outline-none">
+                    <!-- ID AÑADIDO -->
+                    <input type="text" id="nombreMedicamento" value="Cargando..." readonly class="w-full bg-transparent border border-gray-700 rounded-full pl-14 pr-4 py-3 text-gray-800 font-semibold focus:outline-none">
                 </div>
 
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
                         <span class="text-xl opacity-70">🩹</span>
                     </div>
-                    <input type="text" value="Vía de administración" readonly class="w-full bg-transparent border border-gray-700 rounded-full pl-14 pr-4 py-3 text-gray-800 font-semibold focus:outline-none">
+                    <!-- ID AÑADIDO -->
+                    <input type="text" id="viaAdministracion" value="Cargando..." readonly class="w-full bg-transparent border border-gray-700 rounded-full pl-14 pr-4 py-3 text-gray-800 font-semibold focus:outline-none">
                 </div>
             </div>
 
+            <!-- Columna Derecha: Tomas Programadas -->
             <div class="flex flex-col">
                 <h3 class="font-bold text-black mb-4 text-lg md:text-xl">Tomas programadas</h3>
 
-                <!-- Contenedor dinámico donde se agruparán por día y se listarán las tomas -->
                 <div class="flex flex-col gap-6 md:pl-2" id="contenedorTomas">
                     <div class="flex items-center gap-2 mb-2 text-black font-semibold">
                         <span class="text-xl">📅</span> Cargando tomas...
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
+
+    <!-- Botón flotante para editar -->
     <a href="editar_farmaco.html" id="btnIrEditar" class="fixed bottom-24 right-4 md:bottom-10 md:right-10 bg-crono-blue text-white w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 hover:bg-blue-700 transition-all z-40">
         <svg class="w-6 h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
         </svg>
     </a>
+
+    <!-- Barra de navegación inferior móvil -->
     <div class="md:hidden fixed bottom-0 w-full h-16 bg-white border-t border-gray-200 flex justify-between items-center px-2 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-30">
         <a href="index.html" class="flex flex-col items-center text-gray-400 hover:text-crono-teal w-1/5 transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
@@ -186,26 +194,38 @@
                 const data = await response.json();
                 console.log("Datos del fármaco cargados:", data);
 
-                const contenedorFoto = document.querySelector(".w-full.h-56.md\\:h-64");
+                // 1. Renderizar la foto del fármaco de forma segura
+                const contenedorFoto = document.getElementById("contenedorFoto");
                 if (contenedorFoto) {
-                    if (data.foto) {
-                        contenedorFoto.innerHTML = `<img src="${data.foto}" alt="Foto del fármaco" class="w-full h-full object-cover rounded-xl">`;
+                    const urlFoto = data.foto || data.Foto;
+
+                    if (urlFoto && urlFoto.trim() !== "" && urlFoto !== "null") {
+                        let fuenteFoto = urlFoto;
+
+                        if (!fuenteFoto.startsWith("data:image")) {
+                            fuenteFoto = `data:image/png;base64,${fuenteFoto}`;
+                        }
+
+                        contenedorFoto.innerHTML = `<img src="${fuenteFoto}" alt="Foto del fármaco" class="w-full h-full object-cover block">`;
                     } else {
                         contenedorFoto.innerHTML = `<span class="text-gray-400 font-bold tracking-widest text-sm md:text-base">SIN FOTO</span>`;
                     }
                 }
 
-                const inputs = document.querySelectorAll("input[readonly]");
-                if (inputs.length >= 2) {
-                    inputs[0].value = data.nombreMedicamento || "Sin nombre";
-                    inputs[1].value = data.viaAdministracion || "No especificada";
-                }
+                // 2. Rellenar los inputs de nombre y vía de administración
+                const inputNombre = document.getElementById("nombreMedicamento");
+                const inputVia = document.getElementById("viaAdministracion");
 
+                if (inputNombre) inputNombre.value = data.nombreMedicamento || "";
+                if (inputVia) inputVia.value = data.viaAdministracion || "";
+
+                // 3. Configurar el botón flotante de editar con el ID correcto
                 const btnEditar = document.getElementById("btnIrEditar");
                 if (btnEditar) {
                     btnEditar.href = `editar_farmaco.html?id=${idMedicamento}`;
                 }
 
+                // 4. Procesar y agrupar las tomas programadas por día
                 const contenedorTomas = document.getElementById("contenedorTomas");
                 const listaTomas = data.tomas || [];
 
@@ -217,7 +237,6 @@
                         return;
                     }
 
-                    // Agrupar las tomas por fecha (YYYY-MM-DD)
                     const tomasPorFecha = {};
                     listaTomas.forEach(toma => {
                         const fechaCompleta = toma.fechaHoraProgramada ? new Date(toma.fechaHoraProgramada) : new Date();
@@ -232,16 +251,13 @@
                         tomasPorFecha[fechaKey].push(toma);
                     });
 
-                    // Obtener la fecha de hoy en formato YYYY-MM-DD para comparar
                     const hoyObj = new Date();
                     const hoyKey = `${hoyObj.getFullYear()}-${String(hoyObj.getMonth() + 1).padStart(2, '0')}-${String(hoyObj.getDate()).padStart(2, '0')}`;
 
-                    // Renderizar agrupado por días
                     let contadorGlobalToma = 1;
                     Object.keys(tomasPorFecha).sort().forEach(fechaKey => {
                         const tomasDelDia = tomasPorFecha[fechaKey];
 
-                        // Título de la sección de fecha dinámico (si es hoy dice "Hoy", si no, muestra la fecha amigable)
                         let etiquetaFecha = "";
                         if (fechaKey === hoyKey) {
                             etiquetaFecha = "Hoy";
@@ -251,15 +267,13 @@
                             etiquetaFecha = d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
                         }
 
-                        // Agregar cabecera del día con la fecha formateada
                         const headerFechaHTML = `
-                                    <div class="flex items-center gap-2 mt-4 mb-1 text-black font-semibold border-b pb-1">
-                                        <span class="text-xl">📅</span> <span class="capitalize">${etiquetaFecha}</span>
-                                    </div>
-                                `;
+                            <div class="flex items-center gap-2 mt-4 mb-1 text-black font-semibold border-b pb-1">
+                                <span class="text-xl">📅</span> <span class="capitalize">${etiquetaFecha}</span>
+                            </div>
+                        `;
                         contenedorTomas.innerHTML += headerFechaHTML;
 
-                        // Renderizar las tomas de este día
                         tomasDelDia.forEach(toma => {
                             let htmlToma = "";
                             const numeroToma = contadorGlobalToma++;
@@ -268,48 +282,49 @@
 
                             if (estado === "Tomada") {
                                 htmlToma = `
-                                            <div class="flex items-center justify-between p-2">
-                                                <div class="flex items-center gap-4">
-                                                    <div class="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center text-gray-600 bg-transparent">
-                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                                    </div>
-                                                    <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
-                                                </div>
-                                                <span class="text-gray-600 text-xs font-semibold mr-4">Tomada</span>
-                                            </div>`;
+                                    <div class="flex items-center justify-between p-2">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center text-gray-600 bg-transparent">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                            </div>
+                                            <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
+                                        </div>
+                                        <span class="text-gray-600 text-xs font-semibold mr-4">Tomada</span>
+                                    </div>`;
                             } else if (estado === "Toca" || estado === "¡TOCA!") {
                                 htmlToma = `
-                                            <div class="flex items-center justify-between bg-crono-teal/30 p-2 rounded-2xl border border-crono-teal">
-                                                <div class="flex items-center gap-4">
-                                                    <div class="w-8 h-8 rounded-full border border-black flex items-center justify-center text-black bg-transparent">
-                                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                                    </div>
-                                                    <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
-                                                </div>
-                                                <span class="text-crono-teal text-xs font-bold mr-4">¡TOCA!</span>
-                                            </div>`;
+                                    <div class="flex items-center justify-between bg-crono-teal/30 p-2 rounded-2xl border border-crono-teal">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-8 h-8 rounded-full border border-black flex items-center justify-center text-black bg-transparent">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                            </div>
+                                            <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
+                                        </div>
+                                        <span class="text-crono-teal text-xs font-bold mr-4">¡TOCA!</span>
+                                    </div>`;
                             } else if (estado === "Omitida") {
                                 htmlToma = `
-                                            <div class="flex items-center justify-between p-2 opacity-60">
-                                                <div class="flex items-center gap-4">
-                                                    <div class="w-8 h-8 rounded-full border border-red-400 flex items-center justify-center text-red-500 bg-transparent">
-                                                        <span class="font-bold text-sm">✕</span>
-                                                    </div>
-                                                    <span class="font-semibold text-gray-600 text-sm">Toma ${numeroToma} (${horaToma})</span>
-                                                </div>
-                                                <span class="text-red-500 text-xs font-semibold mr-4">Omitida</span>
-                                            </div>`;
+                                    <div class="flex items-center justify-between p-2 opacity-60">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-8 h-8 rounded-full border border-red-400 flex items-center justify-center text-red-500 bg-transparent">
+                                                <span class="font-bold text-sm">✕</span>
+                                            </div>
+                                            <span class="font-semibold text-gray-600 text-sm">Toma ${numeroToma} (${horaToma})</span>
+                                        </div>
+                                        <span class="text-red-500 text-xs font-semibold mr-4">Omitida</span>
+                                    </div>`;
                             } else {
+                                // CORREGIDO: ahora usa htmlToma en lugar de htmlToms
                                 htmlToma = `
-                                            <div class="flex items-center justify-between p-2">
-                                                <div class="flex items-center gap-4">
-                                                    <div class="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center text-gray-600 bg-transparent">
-                                                        <span class="font-bold text-sm">!</span>
-                                                    </div>
-                                                    <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
-                                                </div>
-                                                <span class="text-gray-400 text-xs font-semibold mr-4">Pendiente</span>
-                                            </div>`;
+                                    <div class="flex items-center justify-between p-2">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center text-gray-600 bg-transparent">
+                                                <span class="font-bold text-sm">!</span>
+                                            </div>
+                                            <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
+                                        </div>
+                                        <span class="text-gray-400 text-xs font-semibold mr-4">Pendiente</span>
+                                    </div>`;
                             }
 
                             contenedorTomas.innerHTML += htmlToma;
