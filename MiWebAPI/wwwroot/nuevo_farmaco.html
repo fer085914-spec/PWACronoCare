@@ -86,6 +86,12 @@
             <a href="perfiles.html" class="text-xs font-bold text-crono-teal hover:underline bg-white px-3 py-1.5 rounded-full shadow-xs">Cambiar</a>
         </div>
 
+        <!-- Previsualización opcional de la foto si ya fue tomada -->
+        <div id="contenedorPreviewFoto" class="hidden mb-4 w-full h-32 bg-gray-200 rounded-2xl overflow-hidden border border-gray-300 relative shadow-inner">
+            <img id="imgPreviewFoto" src="" alt="Vista previa" class="w-full h-full object-cover">
+            <span class="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded-full">Foto adjuntada</span>
+        </div>
+
         <form id="formFarmaco" class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-200 flex flex-col gap-5">
 
             <div>
@@ -140,9 +146,6 @@
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
             <span class="text-[9px] font-bold mt-1">HOY</span>
         </a>
-        <!--<a href="nuevo_farmaco.html" class="relative -top-6 bg-crono-teal text-white w-14 h-14 rounded-full flex items-center justify-center text-4xl shadow-lg border-4 border-white transition-transform pb-1 z-50">
-            +
-        </a>-->
         <a href="listo.html" class="flex flex-col items-center text-gray-400 hover:text-crono-teal w-1/5 transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <span class="text-[9px] font-bold mt-1">LISTO</span>
@@ -187,6 +190,7 @@
         function cerrarSesion() {
             localStorage.removeItem(CLAVE_SESION);
             sessionStorage.removeItem('perfilSeleccionado');
+            sessionStorage.removeItem('fotoMedicamentoTemp');
             window.location.replace('login.html');
         }
 
@@ -209,16 +213,13 @@
 
             try {
                 const vias = await llamarApi(`${API}/catalogos/vias-administracion`);
-
                 selectVia.innerHTML = '<option value="" disabled selected>Selecciona una opción</option>';
-
                 vias.forEach(via => {
                     const opcion = document.createElement('option');
-                    opcion.value = via.idVia;        
-                    opcion.textContent = via.nombre; 
+                    opcion.value = via.idVia;
+                    opcion.textContent = via.nombre;
                     selectVia.appendChild(opcion);
                 });
-
             } catch (error) {
                 console.error("Error al cargar vías:", error);
                 selectVia.innerHTML = '<option value="" disabled selected>Error al cargar vías</option>';
@@ -256,6 +257,15 @@
                 console.error("Error al leer el perfil seleccionado", e);
                 window.location.replace("perfiles.html");
             }
+
+            // Verificar si hay una foto tomada previamente guardada en sessionStorage
+            const fotoTemporal = sessionStorage.getItem('fotoMedicamentoTemp');
+            const contenedorPreview = document.getElementById('contenedorPreviewFoto');
+            const imgPreview = document.getElementById('imgPreviewFoto');
+            if (fotoTemporal && contenedorPreview && imgPreview) {
+                imgPreview.src = fotoTemporal;
+                contenedorPreview.classList.remove('hidden');
+            }
         });
 
         document.getElementById('formFarmaco').addEventListener('submit', async (e) => {
@@ -273,16 +283,19 @@
             btnGuardar.textContent = "GUARDANDO...";
             mensajeAlerta.classList.add("hidden");
 
+            // Recuperamos la foto temporal de la cámara (si existe)
+            const fotoCapturada = sessionStorage.getItem('fotoMedicamentoTemp') || null;
+
             const nuevoMedicamento = {
                 idUsuario: usuarioActual.id,
                 idPerfil: Number(perfilActivo.idPerfil),
                 idVia: Number(document.getElementById('viaAdmin').value),
                 nombreMedicamento: document.getElementById('nombreMedicamento').value.trim(),
-                foto: null, 
+                foto: fotoCapturada, // <--- Aquí se manda la foto en Base64 a tu API
                 intervaloHoras: parseInt(document.getElementById('intervalo').value),
                 duracionDias: parseInt(document.getElementById('duracion').value),
-                horaInicio: document.getElementById('horaToma').value, 
-                fechaInicio: null 
+                horaInicio: document.getElementById('horaToma').value,
+                fechaInicio: null
             };
 
             try {
@@ -291,6 +304,9 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(nuevoMedicamento)
                 });
+
+                // Limpiamos la foto temporal del sessionStorage ya que se guardó con éxito
+                sessionStorage.removeItem('fotoMedicamentoTemp');
 
                 mensajeAlerta.textContent = "¡Fármaco guardado correctamente!";
                 mensajeAlerta.className = "text-center font-bold mt-3 text-sm text-green-600 block";

@@ -19,6 +19,7 @@
             }
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col">
@@ -141,6 +142,17 @@
             }
         }
 
+        function renderizarEstadoVacio(contenedor) {
+            contenedor.innerHTML = `
+                    <div class="bg-white/80 rounded-2xl p-8 text-center border border-gray-200 shadow-sm flex flex-col items-center justify-center gap-3">
+                        <div class="w-14 h-14 bg-crono-light rounded-full flex items-center justify-center text-crono-teal text-2xl">
+                            ✅
+                        </div>
+                        <h3 class="font-bold text-gray-700 text-lg">No hay historial aún</h3>
+                        <p class="text-gray-500 text-sm max-w-sm">Los tratamientos médicos concluidos aparecerán automáticamente aquí.</p>
+                    </div>`;
+        }
+
         document.addEventListener("DOMContentLoaded", async () => {
             const idUsuario = obtenerUsuarioSesion();
 
@@ -157,24 +169,30 @@
 
             try {
                 const response = await fetch(`/api/Auth/medicamentos/concluidos/usuario/${idUsuario}`);
-                if (!response.ok) throw new Error("Error al obtener los medicamentos concluidos.");
 
-                const lista = await response.json();
+                if (response.status === 404) {
+                    contenedor.innerHTML = "";
+                    renderizarEstadoVacio(contenedor);
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error("Error al obtener los medicamentos concluidos.");
+                }
+
+                const data = await response.json();
+                const lista = Array.isArray(data) ? data : (data.medicamentos || data.data || []);
+
                 contenedor.innerHTML = "";
 
                 if (lista.length === 0) {
-                    contenedor.innerHTML = `
-                            <div class="bg-white/80 rounded-2xl p-8 text-center border border-gray-200 shadow-sm flex flex-col items-center justify-center gap-3">
-                                <div class="w-14 h-14 bg-crono-light rounded-full flex items-center justify-center text-crono-teal text-2xl">
-                                    ✅
-                                </div>
-                                <h3 class="font-bold text-gray-700 text-lg">No hay historial aún</h3>
-                                <p class="text-gray-500 text-sm max-w-sm">Los tratamientos médicos concluidos aparecerán automáticamente aquí.</p>
-                            </div>`;
+                    renderizarEstadoVacio(contenedor);
                     return;
                 }
 
                 lista.forEach(med => {
+                    const idMed = med.idMedicamento ?? med.ID_MEDICAMENTO ?? med.id;
+
                     const iconoOImg = med.foto
                         ? `<img src="${med.foto}" alt="${med.nombreMedicamento}" class="w-full h-full object-cover rounded-full">`
                         : `<svg class="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path d="M17.34 6.66a5.5 5.5 0 00-7.78 0L6.66 9.56a5.5 5.5 0 000 7.78 5.5 5.5 0 007.78 0l2.9-2.9a5.5 5.5 0 000-7.78zm-4.24 6.36l-2.12-2.12m5.66-2.12L13.1 5.24"></path></svg>`;
@@ -184,7 +202,7 @@
 
                     card.innerHTML = `
                             <!-- Zona clickeable para ir a finalizado.html -->
-                            <div class="flex items-center gap-4 cursor-pointer" onclick="window.location.href='finalizado.html?id=${med.idMedicamento}'">
+                            <div class="flex items-center gap-4 cursor-pointer" onclick="window.location.href='finalizado.html?id=${idMed}'">
                                 <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center shrink-0 overflow-hidden group-hover:bg-gray-200 transition-colors">
                                     ${iconoOImg}
                                 </div>
@@ -206,10 +224,26 @@
                     btnOcultar.addEventListener("click", async (e) => {
                         e.stopPropagation();
 
-                        if (!confirm("¿Deseas eliminar este medicamento del historial?")) return;
+                        const confirmacion = await Swal.fire({
+                            title: "¿Eliminar medicamento?",
+                            text: `¿Deseas eliminar "${med.nombreMedicamento}" del historial?`,
+                            icon: "warning",
+                            showCancelButton: true,
+                            confirmButtonText: "Sí, eliminar",
+                            cancelButtonText: "Cancelar",
+                            confirmButtonColor: "#287F89",
+                            cancelButtonColor: "#6B7280",
+                            background: "#E1F4F6",
+                            color: "#222222",
+                            customClass: {
+                                popup: "rounded-3xl shadow-2xl border-2 border-[#287F89]"
+                            }
+                        });
+
+                        if (!confirmacion.isConfirmed) return;
 
                         try {
-                            const res = await fetch(`/api/Auth/medicamento/ocultar/${idMedicamento}`, {
+                            const res = await fetch(`/api/Auth/medicamento/ocultar/${idMed}`, {
                                 method: 'PUT'
                             });
 
@@ -222,20 +256,24 @@
                                 card.remove();
 
                                 if (contenedor.children.length === 0) {
-                                    contenedor.innerHTML = `
-                                            <div class="bg-white/80 rounded-2xl p-8 text-center border border-gray-200 shadow-sm flex flex-col items-center justify-center gap-3">
-                                                <div class="w-14 h-14 bg-crono-light rounded-full flex items-center justify-center text-crono-teal text-2xl">
-                                                    ✅
-                                                </div>
-                                                <h3 class="font-bold text-gray-700 text-lg">No hay historial aún</h3>
-                                                <p class="text-gray-500 text-sm max-w-sm">Los tratamientos médicos concluidos aparecerán automáticamente aquí.</p>
-                                            </div>`;
+                                    renderizarEstadoVacio(contenedor);
                                 }
                             }, 300);
 
                         } catch (error) {
                             console.error("Error:", error);
-                            alert("Hubo un error al intentar eliminar el registro.");
+                            Swal.fire({
+                                title: "Error",
+                                text: "Hubo un error al intentar eliminar el registro.",
+                                icon: "error",
+                                confirmButtonText: "Aceptar",
+                                confirmButtonColor: "#287F89",
+                                background: "#E1F4F6",
+                                color: "#222222",
+                                customClass: {
+                                    popup: "rounded-3xl shadow-2xl border-2 border-[#287F89]"
+                                }
+                            });
                         }
                     });
 

@@ -19,6 +19,7 @@
             }
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col">
@@ -104,6 +105,11 @@
                 </div>
             </div>
 
+            <!-- Indicador visual cuando hay una fotografía nueva lista para guardarse -->
+            <div id="avisoFotoNueva" class="hidden bg-crono-light border border-crono-teal text-crono-dark rounded-2xl px-4 py-2.5 text-xs font-semibold text-center">
+                Nueva fotografía capturada y lista para guardarse.
+            </div>
+
             <div class="flex flex-col gap-3 mt-4">
                 <a id="btnActualizarFoto" href="#" class="w-full bg-crono-teal text-white font-bold py-3 rounded-full hover:bg-crono-blue transition-colors shadow-md text-sm tracking-wide block text-center">
                     ACTUALIZAR FOTO
@@ -111,7 +117,6 @@
                 <button type="submit" id="btnGuardarCambios" class="w-full bg-crono-blue text-white font-bold py-3 rounded-full hover:bg-blue-700 transition-colors shadow-md text-sm tracking-wide">
                     GUARDAR CAMBIOS
                 </button>
-                <!-- Botón Descartar Cambios -->
                 <button type="button" id="btnDescartar" class="w-full bg-gray-200 text-gray-700 font-bold py-3 rounded-full hover:bg-gray-300 transition-colors shadow-sm text-sm tracking-wide">
                     DESCARTAR CAMBIOS
                 </button>
@@ -121,6 +126,8 @@
     </div>
 
     <script>
+        const CLAVE_FOTO_TEMP = 'fotoMedicamentoTemp';
+
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebarOverlay');
         const openBtn = document.getElementById('openSidebar');
@@ -139,6 +146,7 @@
         function cerrarSesion() {
             localStorage.removeItem("usuarioLogueado");
             sessionStorage.removeItem("empleados_usuario");
+            sessionStorage.removeItem(CLAVE_FOTO_TEMP);
             window.location.replace("login.html");
         }
         document.getElementById('btnCerrarSesionLateral')?.addEventListener('click', cerrarSesion);
@@ -155,6 +163,29 @@
             }
         }
 
+        function mostrarAlertaCrono(titulo, mensaje, tipo = 'info') {
+            return Swal.fire({
+                title: titulo,
+                text: mensaje,
+                icon: tipo,
+                confirmButtonText: 'Aceptar',
+                confirmButtonColor: '#287F89',
+                background: '#E1F4F6',
+                color: '#222222',
+                customClass: {
+                    popup: 'rounded-3xl shadow-2xl border-2 border-[#287F89]'
+                }
+            });
+        }
+
+        function actualizarEstadoFotoPendiente() {
+            const aviso = document.getElementById("avisoFotoNueva");
+            const fotoPendiente = sessionStorage.getItem(CLAVE_FOTO_TEMP);
+            if (aviso) {
+                aviso.classList.toggle("hidden", !fotoPendiente);
+            }
+        }
+
         const params = new URLSearchParams(window.location.search);
         const idMedicamento = params.get("id");
 
@@ -166,7 +197,7 @@
             }
 
             if (!idMedicamento) {
-                alert("No se especificó un medicamento para editar.");
+                await mostrarAlertaCrono("Atención", "No se especificó un medicamento para editar.", "warning");
                 window.location.replace("index.html");
                 return;
             }
@@ -176,18 +207,38 @@
 
             await cargarViasAdministracion();
             await cargarDatosMedicamento(usuario.id, idMedicamento);
+            actualizarEstadoFotoPendiente();
 
-            // Lógica del botón Descartar Cambios
             const btnDescartar = document.getElementById("btnDescartar");
             if (btnDescartar) {
-                btnDescartar.addEventListener("click", () => {
-                    const seguro = confirm("¿Estás seguro que quieres descartar los cambios?");
-                    if (seguro) {
+                btnDescartar.addEventListener("click", async () => {
+                    const confirmacion = await Swal.fire({
+                        title: "¿Descartar cambios?",
+                        text: "¿Estás seguro que quieres descartar los cambios?",
+                        icon: "warning",
+                        showCancelButton: true,
+                        confirmButtonText: "Sí, descartar",
+                        cancelButtonText: "Cancelar",
+                        confirmButtonColor: "#287F89",
+                        cancelButtonColor: "#6B7280",
+                        background: "#E1F4F6",
+                        color: "#222222",
+                        customClass: {
+                            popup: "rounded-3xl shadow-2xl border-2 border-[#287F89]"
+                        }
+                    });
+
+                    if (confirmacion.isConfirmed) {
+                        sessionStorage.removeItem(CLAVE_FOTO_TEMP);
                         window.location.replace(`detalle_farmaco.html?id=${idMedicamento}`);
                     }
-                    // Si le da en Cancelar, no hace nada y se queda en editar
                 });
             }
+        });
+
+        // Refresca el indicador si el navegador vuelve desde el historial (bfcache)
+        window.addEventListener("pageshow", () => {
+            actualizarEstadoFotoPendiente();
         });
 
         async function cargarViasAdministracion() {
@@ -237,20 +288,26 @@
 
             } catch (error) {
                 console.error("Error al precargar datos:", error);
-                alert("Error al cargar los datos del fármaco para edición.");
+                await mostrarAlertaCrono("Error", "Error al cargar los datos del fármaco para edición.", "error");
             }
         }
 
         document.getElementById("formEditarMedicamento").addEventListener("submit", async (e) => {
             e.preventDefault();
             const usuario = obtenerUsuarioSesion();
+            if (!usuario) {
+                window.location.replace("login.html");
+                return;
+            }
+
+            const fotoNueva = sessionStorage.getItem(CLAVE_FOTO_TEMP);
 
             const modeloEdicion = {
                 idUsuario: usuario.id,
                 idMedicamento: Number(idMedicamento),
                 idVia: Number(document.getElementById("selectVia").value),
-                nombreMedicamento: document.getElementById("txtNombreMedicamento").value,
-                foto: null,
+                nombreMedicamento: document.getElementById("txtNombreMedicamento").value.trim(),
+                foto: fotoNueva && fotoNueva.trim() !== "" ? fotoNueva : null,
                 intervaloHoras: Number(document.getElementById("txtIntervalo").value),
                 duracionDias: Number(document.getElementById("txtDuracion").value),
                 horaPrimeraToma: document.getElementById("txtHoraInicio").value + ":00"
@@ -269,13 +326,17 @@
                     throw new Error(resultado.message || "Error al actualizar el medicamento.");
                 }
 
-                alert("¡Fármaco actualizado con éxito!");
+                // Se limpia la foto temporal solo después de confirmar que guardó en BD
+                sessionStorage.removeItem(CLAVE_FOTO_TEMP);
+                actualizarEstadoFotoPendiente();
+
+                await mostrarAlertaCrono("¡Actualizado!", "¡Fármaco actualizado con éxito!", "success");
 
                 window.location.replace(`detalle_farmaco.html?id=${idMedicamento}`);
 
             } catch (error) {
                 console.error("Error:", error);
-                alert("No se pudo guardar: " + error.message);
+                await mostrarAlertaCrono("Error", "No se pudo guardar: " + error.message, "error");
             }
         });
     </script>

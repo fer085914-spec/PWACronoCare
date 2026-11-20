@@ -261,6 +261,43 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpDelete("perfil/ocultar/{idUsuario}/{idPerfil}")]
+    public IActionResult OcultarPerfil(long idUsuario, long idPerfil)
+    {
+        try
+        {
+            using (SqlConnection conn = new SqlConnection(CadenaSql))
+            {
+                using (SqlCommand cmd = new SqlCommand("sp_Perfil_Ocultar", conn))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@IdUsuario", idUsuario);
+                    cmd.Parameters.AddWithValue("@IdPerfil", idPerfil);
+
+                    conn.Open();
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return Ok(new
+                            {
+                                success = true,
+                                message = "Perfil eliminado correctamente.",
+                                idPerfil = reader["ID_PERFIL"]
+                            });
+                        }
+                    }
+                }
+            }
+
+            return NotFound(new { success = false, message = "No se encontró el perfil." });
+        }
+        catch (SqlException ex)
+        {
+            return RespuestaError(ex);
+        }
+    }
+
     // ---------------------------------------------------------------
     // MEDICAMENTOS
     // ---------------------------------------------------------------
