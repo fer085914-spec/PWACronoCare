@@ -472,28 +472,21 @@
 
         // Carga del catálogo de tipos de perfil
         async function cargarTiposPerfil() {
-            const select = document.getElementById('tipoPerfilModal');
-            if (!select) return;
+    const select = document.getElementById('tipoPerfilModal');
+    if (!select) return;
 
-            try {
-                const tipos = await llamarApi(`${API}/catalogos/tipos-perfil`);
+    try {
+        // Intentamos hacer la petición
+        const urlPeticion = `${API}/catalogos/tipos-perfil`;
+        console.log("Consultando tipos de perfil en:", urlPeticion);
 
-                select.innerHTML = '<option value="" disabled selected>Selecciona una opción</option>';
+        const tipos = await llamarApi(urlPeticion);
 
-                if (!tipos || tipos.length === 0) {
-                    console.warn("No se encontraron tipos de perfil en la base de datos.");
-                    return;
-                }
+        select.innerHTML = '<option value="" disabled selected>Selecciona una opción</option>';
 
-                tipos.forEach((tipo) => {
-                    const opcion = document.createElement('option');
-                    opcion.value = tipo.idTipoPerfil;
-                    opcion.textContent = tipo.nombre;
-                    select.appendChild(opcion);
-                });
-            } catch (error) {
-                console.error('Error al cargar los tipos de perfil:', error);
-            }
+        if (!tipos || tipos.length === 0) {
+            console.warn("La API respondió pero la lista llegó vacía.");
+            return;
         }
 
         // Guardar el perfil elegido en sessionStorage y navegar al formulario de registro de fármaco
