@@ -4,6 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CronoCare - Detalle del Fármaco</title>
+    <!-- Guard de sesión temprano: oculta la página y redirige si no hay usuario válido -->
+    <script>
+        (function () {
+            function tieneSesionValida() {
+                const guardado = localStorage.getItem('usuarioLogueado') || sessionStorage.getItem('empleados_usuario');
+                if (!guardado) return false;
+                try {
+                    const u = JSON.parse(guardado);
+                    const id = u && (u.id ?? u.idUsuario);
+                    return Boolean(id);
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            if (!tieneSesionValida()) {
+                document.documentElement.style.display = 'none';
+                window.location.replace('login.html');
+                return;
+            }
+
+            // Si vuelve desde el historial del navegador (bfcache), revalida la sesión
+            window.addEventListener('pageshow', (event) => {
+                if (event.persisted && !tieneSesionValida()) {
+                    document.documentElement.style.display = 'none';
+                    window.location.replace('login.html');
+                }
+            });
+        })();
+    </script>
+    <!-- Tailwind CSS y configuración de colores personalizados de CronoCare -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -19,99 +50,165 @@
             }
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col">
+<body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col text-crono-dark">
+
+    <!-- Menú lateral -->
     <div id="sidebar" class="fixed inset-y-0 right-0 w-64 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
         <div class="p-5 bg-crono-blue text-white flex justify-between items-center">
-            <span class="font-bold text-lg">Menú CronoCare</span>
+            <span class="font-bold text-base">Menú CronoCare</span>
             <button id="closeSidebar" class="text-white hover:text-gray-200">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
-        <div class="flex flex-col p-6 gap-6">
+        <div class="flex flex-col p-6 gap-5 text-sm">
             <a href="index.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">🏠</span> Inicio
+                <span class="text-lg">🏠</span> Inicio
             </a>
             <a href="hoy.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">📅</span> Agenda de Hoy
+                <span class="text-lg">📅</span> Agenda de Hoy
+            </a>
+            <a href="perfiles.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-lg">👥</span> Perfiles
             </a>
             <a href="nuevo_farmaco.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">➕</span> Nuevo Registro
+                <span class="text-lg">➕</span> Nuevo Registro
             </a>
             <a href="listo.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">✅</span> Terminados
+                <span class="text-lg">✅</span> Terminados
             </a>
             <hr>
             <button id="btnCerrarSesionLateral" class="text-left text-red-500 hover:text-red-700 font-semibold flex items-center gap-2">
-                <span class="text-xl">🚪</span> Salir
+                <span class="text-lg">🚪</span> Salir
             </button>
         </div>
     </div>
 
+    <!-- Fondo del menú lateral -->
     <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40 transition-opacity"></div>
-    
-    <div class="bg-crono-blue text-white p-4 md:px-8 md:py-5 shadow-md flex justify-between items-center z-10 w-full">
-        <a href="index.html" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Ir al inicio">
-            <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm rounded-full">
-                <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
+
+    <div class="w-full min-h-screen relative flex flex-col md:flex-row flex-1">
+
+        <!-- Barra lateral para escritorio -->
+        <aside class="hidden md:flex md:w-72 md:shrink-0 md:flex-col md:justify-between bg-[#2B7A96] text-white md:min-h-screen md:sticky md:top-0 shadow-md z-20">
+            <div class="p-7 flex flex-col">
+                <a href="index.html" class="flex items-center gap-3.5 mb-9 pb-4 border-b border-white/15 hover:opacity-95 transition-opacity" title="Ir al inicio">
+                    <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-white/30">
+                        <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-contain">
+                    </div>
+                    <span class="text-2xl font-bold tracking-wide text-white">CronoCare</span>
+                </a>
+
+                <nav class="flex flex-col gap-2.5 text-base">
+                    <a href="index.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Inicio</span>
+                    </a>
+                    <a href="hoy.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Hoy</span>
+                    </a>
+                    <a href="perfiles.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Perfiles</span>
+                    </a>
+                    <a href="listo.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Terminados</span>
+                    </a>
+                    <button type="button" id="btnCerrarSesionPc" class="text-left text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors mt-1">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Salir</span>
+                    </button>
+                </nav>
             </div>
-            <h1 class="text-2xl md:text-3xl font-bold tracking-wide">CronoCare</h1>
-        </a>
-        <button id="openSidebar" class="hidden md:block text-white hover:text-crono-light transition-colors">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </aside>
+
+        <!-- Contenido principal -->
+        <div class="flex-1 flex flex-col min-w-0">
+
+            <!-- Encabezado superior -->
+            <div class="md:hidden bg-[#2B7A96] text-white p-4 shadow-md flex justify-between items-center z-10 w-full">
+                <a href="index.html" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Ir al inicio">
+                    <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm rounded-full">
+                        <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
+                    </div>
+                    <h1 class="text-2xl font-bold tracking-wide">CronoCare</h1>
+                </a>
+            </div>
+
+            <div class="flex-1 pb-24 md:pb-14 w-full max-w-4xl md:max-w-5xl mx-auto flex flex-col p-6 md:px-10 md:pt-9 mt-2 md:mt-0 relative">
+
+                <!-- Título de la vista y botón de volver en móvil -->
+                <div class="flex items-center mb-6 md:mb-7 w-full">
+                    <a href="index.html" class="md:hidden text-gray-700 hover:text-crono-teal transition-colors flex-shrink-0" title="Volver al inicio">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+                        </svg>
+                    </a>
+                    <h2 class="text-lg md:text-2xl font-bold text-center md:text-left text-crono-dark tracking-wide flex-1 md:flex-none mr-8 md:mr-0 uppercase">
+                        DETALLE <span id="tituloDetalleFarmaco" class="font-bold"></span>
+                    </h2>
+                </div>
+
+                <!-- columnas: datos del fármaco y tomas -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-8 w-full items-start">
+
+                    <!-- izquierda: foto, nombre y vía de administración -->
+                    <div class="flex flex-col gap-4 md:bg-white md:p-7 md:rounded-3xl md:shadow-sm md:border md:border-gray-100">
+                        <div id="contenedorFoto" class="w-full h-56 md:h-52 bg-gray-200/50 md:bg-[#DCE5E9] rounded-xl md:rounded-2xl overflow-hidden flex items-center justify-center border-2 md:border-0 border-gray-400 shadow-2xs">
+                            <span class="text-gray-500 md:text-gray-400 font-bold tracking-widest text-xs md:text-sm uppercase">FOTO DEL FÁRMACO</span>
+                        </div>
+
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 md:pl-5 flex items-center pointer-events-none">
+                                <span class="text-lg md:text-xl opacity-100">💊</span>
+                            </div>
+                            <input type="text" id="nombreMedicamento" value="Cargando..." readonly class="w-full bg-crono-teal border border-transparent rounded-full pl-12 md:pl-14 pr-4 py-2.5 md:py-3 text-sm md:text-base text-white font-semibold focus:outline-none">
+                        </div>
+
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 md:pl-5 flex items-center pointer-events-none">
+                                <span class="text-lg md:text-xl opacity-80 md:opacity-100">🩹</span>
+                            </div>
+                            <input type="text" id="viaAdministracion" value="Cargando..." readonly class="w-full bg-crono-teal border border-transparent rounded-full pl-12 md:pl-14 pr-4 py-2.5 md:py-3 text-sm md:text-base text-white font-semibold focus:outline-none">
+                        </div>
+                    </div>
+
+                    <!-- derecha: listado de tomas agrupadas por fecha -->
+                    <div class="flex flex-col md:bg-white md:p-7 md:rounded-3xl md:shadow-sm md:border md:border-gray-100">
+                        <h3 class="font-bold text-crono-dark mb-3 text-base md:text-xl">Tomas programadas</h3>
+
+                        <div class="flex flex-col gap-4 md:gap-3" id="contenedorTomas">
+                            <div class="flex items-center gap-2 mb-2 text-crono-dark font-semibold text-sm">
+                                <span class="text-lg">📅</span> Cargando tomas...
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botones eliminar fármaco y editar -->
+    <div class="fixed bottom-24 right-4 md:bottom-8 md:right-8 flex items-center gap-3 z-40">
+        <button type="button" id="btnOcultarFarmaco" title="Eliminar fármaco" class="bg-red-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-105 hover:bg-red-700 transition-all">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2.000 2.000 0 0116.138 21H7.862a2.000 2.000 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
         </button>
+
+        <a href="editar_farmaco.html" id="btnIrEditar" title="Editar fármaco" class="bg-crono-teal md:bg-crono-blue text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-105 hover:bg-crono-blue transition-all">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+            </svg>
+        </a>
     </div>
 
-    <div class="flex-1 pb-24 md:pb-12 w-full max-w-4xl mx-auto flex flex-col p-6 mt-2 relative">
-        <div class="flex items-center mb-8 w-full">
-            <a href="index.html" class="text-gray-700 hover:text-crono-teal transition-colors flex-shrink-0">
-                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
-                </svg>
-            </a>
-            <h2 class="text-xl md:text-2xl font-bold text-center text-black tracking-wide flex-1 mr-10 uppercase">DETALLE</h2>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 w-full">
-            <div class="flex flex-col gap-4">
-                <div id="contenedorFoto" class="w-full h-56 md:h-64 bg-gray-200/50 rounded-xl overflow-hidden flex items-center justify-center border-2 border-gray-400 shadow-sm">
-                    <span class="text-gray-400 font-bold tracking-widest text-sm md:text-base">FOTO DEL FÁRMACO</span>
-                </div>
-
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                        <span class="text-xl opacity-100">💊</span>
-                    </div>
-                    <input type="text" id="nombreMedicamento" value="Cargando..." readonly class="w-full bg-transparent border border-gray-700 rounded-full pl-14 pr-4 py-3 text-gray-800 font-semibold focus:outline-none">
-                </div>
-
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                        <span class="text-xl opacity-70">🩹</span>
-                    </div>
-                    <input type="text" id="viaAdministracion" value="Cargando..." readonly class="w-full bg-transparent border border-gray-700 rounded-full pl-14 pr-4 py-3 text-gray-800 font-semibold focus:outline-none">
-                </div>
-            </div>
-
-            <div class="flex flex-col">
-                <h3 class="font-bold text-black mb-4 text-lg md:text-xl">Tomas programadas</h3>
-
-                <div class="flex flex-col gap-6 md:pl-2" id="contenedorTomas">
-                    <div class="flex items-center gap-2 mb-2 text-black font-semibold">
-                        <span class="text-xl">📅</span> Cargando tomas...
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <a href="editar_farmaco.html" id="btnIrEditar" class="fixed bottom-24 right-4 md:bottom-10 md:right-10 bg-crono-blue text-white w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 hover:bg-blue-700 transition-all z-40">
-        <svg class="w-6 h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
-        </svg>
-    </a>
-
+    <!-- Barra de navegación inferior para móvil -->
     <div class="md:hidden fixed bottom-0 w-full h-16 bg-white border-t border-gray-200 flex justify-between items-center px-2 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-30">
         <a href="index.html" class="flex flex-col items-center text-gray-400 hover:text-crono-teal w-1/5 transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
@@ -121,20 +218,18 @@
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
             <span class="text-[9px] font-bold mt-1">HOY</span>
         </a>
-        <a href="nuevo_farmaco.html" class="relative -top-6 bg-crono-teal text-white w-14 h-14 rounded-full flex items-center justify-center text-4xl shadow-lg border-4 border-white transition-transform pb-1 z-50">
-            +
-        </a>
         <a href="listo.html" class="flex flex-col items-center text-gray-400 hover:text-crono-teal w-1/5 transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <span class="text-[9px] font-bold mt-1">LISTO</span>
         </a>
-        <button class="flex flex-col items-center text-gray-400 hover:text-red-500 w-1/5 transition-colors" onclick="sessionStorage.removeItem('empleados_usuario'); window.location.replace('login.html');">
+        <button type="button" id="btnCerrarSesion" class="flex flex-col items-center text-gray-400 hover:text-red-500 w-1/5 transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
             <span class="text-[9px] font-bold mt-1">SALIR</span>
         </button>
     </div>
 
     <script>
+        // --- Control del menú lateral ---
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebarOverlay');
         const openBtn = document.getElementById('openSidebar');
@@ -149,6 +244,7 @@
         if (closeBtn) closeBtn.addEventListener('click', toggleMenu);
         if (overlay) overlay.addEventListener('click', toggleMenu);
 
+        // Obtiene el id numérico del usuario desde localStorage o sessionStorage
         function obtenerUsuarioSesion() {
             const guardado = localStorage.getItem('usuarioLogueado') || sessionStorage.getItem('empleados_usuario');
             if (!guardado) return null;
@@ -161,15 +257,121 @@
             }
         }
 
-        document.addEventListener("DOMContentLoaded", async () => {
+        // Limpia datos de sesión y perfil y manda al login
+        function cerrarSesion() {
+            document.documentElement.style.display = 'none';
+            localStorage.removeItem('usuarioLogueado');
+            localStorage.removeItem('perfilSeleccionado');
+            sessionStorage.removeItem('empleados_usuario');
+            sessionStorage.removeItem('idPerfilSeleccionado');
+            window.location.replace('login.html');
+        }
+
+        // Verifica que siga habiendo sesión activa antes de continuar
+        function verificarSesionActiva() {
+            if (!obtenerUsuarioSesion()) {
+                document.documentElement.style.display = 'none';
+                window.location.replace('login.html');
+                return false;
+            }
+            document.documentElement.style.display = '';
+            return true;
+        }
+
+        // Conectamos los distintos botones de salir (menú lateral, escritorio y móvil)
+        document.getElementById('btnCerrarSesionLateral')?.addEventListener('click', cerrarSesion);
+        document.getElementById('btnCerrarSesionPc')?.addEventListener('click', cerrarSesion);
+        document.getElementById('btnCerrarSesion')?.addEventListener('click', cerrarSesion);
+
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                verificarSesionActiva();
+            }
+        });
+
+        // Guardamos el fármaco actual para usarlo al ocultar o editar
+        let idMedicamentoActual = null;
+        let nombreMedicamentoActual = 'este medicamento';
+
+        // Oculta (borrado lógico) el medicamento en la API previa confirmación 
+        async function ocultarFarmaco(idMedicamento, nombre) {
+            if (!verificarSesionActiva()) return;
             const idUsuario = obtenerUsuarioSesion();
+
+            const confirmacion = await Swal.fire({
+                title: '¿Eliminar medicamento?',
+                text: `¿Deseas eliminar "${nombre}" de los medicamentos activos?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#287F89',
+                cancelButtonColor: '#6B7280',
+                background: '#E1F4F6',
+                color: '#222222',
+                customClass: {
+                    popup: 'rounded-3xl shadow-2xl border-2 border-[#287F89]'
+                }
+            });
+
+            if (!confirmacion.isConfirmed) return;
+
+            try {
+                const queryUsuario = idUsuario ? `?idUsuario=${idUsuario}` : '';
+                const response = await fetch(`/api/Auth/medicamento/ocultar/${idMedicamento}${queryUsuario}`, {
+                    method: 'PUT'
+                });
+                const resultado = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(resultado.mensaje || resultado.message || 'No se pudo eliminar el medicamento.');
+                }
+
+                await Swal.fire({
+                    title: '¡Eliminado!',
+                    text: `"${nombre}" ha sido eliminado correctamente.`,
+                    icon: 'success',
+                    confirmButtonText: 'Aceptar',
+                    confirmButtonColor: '#287F89',
+                    background: '#E1F4F6',
+                    color: '#222222',
+                    customClass: {
+                        popup: 'rounded-3xl shadow-2xl border-2 border-[#287F89]'
+                    }
+                });
+
+                window.location.replace('index.html');
+            } catch (error) {
+                console.error('Error al ocultar fármaco:', error);
+                await Swal.fire({
+                    title: 'Error',
+                    text: error.message || 'Error al eliminar el medicamento.',
+                    icon: 'error',
+                    confirmButtonText: 'Aceptar',
+                    confirmButtonColor: '#287F89',
+                    background: '#E1F4F6',
+                    color: '#222222',
+                    customClass: {
+                        popup: 'rounded-3xl shadow-2xl border-2 border-[#287F89]'
+                    }
+                });
+            }
+        }
+
+        document.getElementById('btnOcultarFarmaco')?.addEventListener('click', () => {
+            if (idMedicamentoActual) {
+                ocultarFarmaco(idMedicamentoActual, nombreMedicamentoActual);
+            }
+        });
+
+        // --- Carga inicial del detalle del fármaco ---
+        document.addEventListener("DOMContentLoaded", async () => {
+            if (!verificarSesionActiva()) return;
+
+            const idUsuario = obtenerUsuarioSesion();
+            // Leer el id del medicamento desde la URL (?id=...)
             const params = new URLSearchParams(window.location.search);
             const idMedicamento = params.get("id");
-
-            if (!idUsuario) {
-                window.location.replace("login.html");
-                return;
-            }
+            idMedicamentoActual = idMedicamento;
 
             if (!idMedicamento) {
                 console.error("No se encontró un ID de medicamento en la URL.");
@@ -187,6 +389,7 @@
                 const data = await response.json();
                 console.log("Datos del fármaco cargados:", data);
 
+                // Renderizar la foto o muestra placeholder si no tiene
                 const contenedorFoto = document.getElementById("contenedorFoto");
                 if (contenedorFoto) {
                     const urlFoto = data.foto || data.Foto;
@@ -200,21 +403,31 @@
 
                         contenedorFoto.innerHTML = `<img src="${fuenteFoto}" alt="Foto del fármaco" class="w-full h-full object-cover block">`;
                     } else {
-                        contenedorFoto.innerHTML = `<span class="text-gray-400 font-bold tracking-widest text-sm md:text-base">SIN FOTO</span>`;
+                        contenedorFoto.innerHTML = `<span class="text-gray-500 md:text-gray-400 font-bold tracking-widest text-xs md:text-sm uppercase">SIN FOTO</span>`;
                     }
                 }
 
+                // Llena campos generales y actualiza el enlace de edición con su id
                 const inputNombre = document.getElementById("nombreMedicamento");
                 const inputVia = document.getElementById("viaAdministracion");
+                const tituloDetalleFarmaco = document.getElementById("tituloDetalleFarmaco");
+
+                if (data.nombreMedicamento) {
+                    nombreMedicamentoActual = data.nombreMedicamento;
+                }
 
                 if (inputNombre) inputNombre.value = data.nombreMedicamento || "";
                 if (inputVia) inputVia.value = data.viaAdministracion || "";
+                if (tituloDetalleFarmaco && data.nombreMedicamento) {
+                    tituloDetalleFarmaco.textContent = data.nombreMedicamento;
+                }
 
                 const btnEditar = document.getElementById("btnIrEditar");
                 if (btnEditar) {
                     btnEditar.href = `editar_farmaco.html?id=${idMedicamento}`;
                 }
 
+                // Renderiza las tomas agrupadas por día
                 const contenedorTomas = document.getElementById("contenedorTomas");
                 const listaTomas = data.tomas || [];
 
@@ -226,6 +439,7 @@
                         return;
                     }
 
+                    // Agrupamos las tomas bajo clave YYYY-MM-DD
                     const tomasPorFecha = {};
                     listaTomas.forEach(toma => {
                         const fechaCompleta = toma.fechaHoraProgramada ? new Date(toma.fechaHoraProgramada) : new Date();
@@ -240,10 +454,12 @@
                         tomasPorFecha[fechaKey].push(toma);
                     });
 
+                    // Clave de hoy para mostrar "Hoy" en vez de la fecha
                     const hoyObj = new Date();
                     const hoyKey = `${hoyObj.getFullYear()}-${String(hoyObj.getMonth() + 1).padStart(2, '0')}-${String(hoyObj.getDate()).padStart(2, '0')}`;
 
                     let contadorGlobalToma = 1;
+                    // Recorre las fechas en orden cronológico
                     Object.keys(tomasPorFecha).sort().forEach(fechaKey => {
                         const tomasDelDia = tomasPorFecha[fechaKey];
 
@@ -256,13 +472,15 @@
                             etiquetaFecha = d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
                         }
 
+                        // Encabezado del día
                         const headerFechaHTML = `
-                                <div class="flex items-center gap-2 mt-4 mb-1 text-black font-semibold border-b pb-1">
-                                    <span class="text-xl">📅</span> <span class="capitalize">${etiquetaFecha}</span>
-                                </div>
-                            `;
+                                            <div class="flex items-center gap-2 mt-2 mb-1 text-crono-dark font-semibold text-sm border-b border-gray-100 pb-1.5">
+                                                <span class="text-base">📅</span> <span class="capitalize">${etiquetaFecha}</span>
+                                            </div>
+                                        `;
                         contenedorTomas.innerHTML += headerFechaHTML;
 
+                        // Pinta cada toma según su estado (Tomada, ¡TOCA!, Omitida o Pendiente)
                         tomasDelDia.forEach(toma => {
                             let htmlToma = "";
                             const numeroToma = contadorGlobalToma++;
@@ -271,48 +489,48 @@
 
                             if (estado === "Tomada") {
                                 htmlToma = `
-                                        <div class="flex items-center justify-between p-2">
-                                            <div class="flex items-center gap-4">
-                                                <div class="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center text-gray-600 bg-transparent">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                                </div>
-                                                <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
-                                            </div>
-                                            <span class="text-gray-600 text-xs font-semibold mr-4">Tomada</span>
-                                        </div>`;
+                                                    <div class="flex items-center justify-between px-3 py-2 rounded-2xl">
+                                                        <div class="flex items-center gap-3.5">
+                                                            <div class="w-8 h-8 rounded-full bg-[#E5EAEE] text-crono-dark flex items-center justify-center shrink-0">
+                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 13l4 4L19 7"></path></svg>
+                                                            </div>
+                                                            <span class="font-medium text-crono-dark text-sm">Toma ${numeroToma} (${horaToma})</span>
+                                                        </div>
+                                                        <span class="text-gray-600 text-xs font-semibold">Tomada</span>
+                                                    </div>`;
                             } else if (estado === "Toca" || estado === "¡TOCA!") {
                                 htmlToma = `
-                                        <div class="flex items-center justify-between bg-crono-teal/30 p-2 rounded-2xl border border-crono-teal">
-                                            <div class="flex items-center gap-4">
-                                                <div class="w-8 h-8 rounded-full border border-black flex items-center justify-center text-black bg-transparent">
-                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                                </div>
-                                                <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
-                                            </div>
-                                            <span class="text-crono-teal text-xs font-bold mr-4">¡TOCA!</span>
-                                        </div>`;
+                                                    <div class="flex items-center justify-between bg-[#B9DCE3] px-3.5 py-2.5 rounded-full border border-crono-teal/30">
+                                                        <div class="flex items-center gap-3.5">
+                                                            <div class="w-8 h-8 rounded-full bg-[#DCECEF] text-crono-dark flex items-center justify-center shrink-0">
+                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                            </div>
+                                                            <span class="font-semibold text-crono-dark text-sm">Toma ${numeroToma} (${horaToma})</span>
+                                                        </div>
+                                                        <span class="text-crono-teal text-xs font-bold">¡TOCA!</span>
+                                                    </div>`;
                             } else if (estado === "Omitida") {
                                 htmlToma = `
-                                        <div class="flex items-center justify-between p-2 opacity-60">
-                                            <div class="flex items-center gap-4">
-                                                <div class="w-8 h-8 rounded-full border border-red-400 flex items-center justify-center text-red-500 bg-transparent">
-                                                    <span class="font-bold text-sm">✕</span>
-                                                </div>
-                                                <span class="font-semibold text-gray-600 text-sm">Toma ${numeroToma} (${horaToma})</span>
-                                            </div>
-                                            <span class="text-red-500 text-xs font-semibold mr-4">Omitida</span>
-                                        </div>`;
+                                                    <div class="flex items-center justify-between px-3 py-2 rounded-2xl opacity-70">
+                                                        <div class="flex items-center gap-3.5">
+                                                            <div class="w-8 h-8 rounded-full border border-red-400 flex items-center justify-center text-red-500 bg-transparent shrink-0">
+                                                                <span class="font-bold text-xs">✕</span>
+                                                            </div>
+                                                            <span class="font-medium text-gray-600 text-sm">Toma ${numeroToma} (${horaToma})</span>
+                                                        </div>
+                                                        <span class="text-red-500 text-xs font-semibold">Omitida</span>
+                                                    </div>`;
                             } else {
                                 htmlToma = `
-                                        <div class="flex items-center justify-between p-2">
-                                            <div class="flex items-center gap-4">
-                                                <div class="w-8 h-8 rounded-full border border-gray-400 flex items-center justify-center text-gray-600 bg-transparent">
-                                                    <span class="font-bold text-sm">!</span>
-                                                </div>
-                                                <span class="font-semibold text-black text-sm">Toma ${numeroToma} (${horaToma})</span>
-                                            </div>
-                                            <span class="text-gray-400 text-xs font-semibold mr-4">Pendiente</span>
-                                        </div>`;
+                                                    <div class="flex items-center justify-between px-3 py-2 rounded-2xl">
+                                                        <div class="flex items-center gap-3.5">
+                                                            <div class="w-8 h-8 rounded-full bg-[#E5EAEE] text-crono-dark flex items-center justify-center shrink-0">
+                                                                <span class="font-bold text-xs">!</span>
+                                                            </div>
+                                                            <span class="font-medium text-crono-dark text-sm">Toma ${numeroToma} (${horaToma})</span>
+                                                        </div>
+                                                        <span class="text-gray-500 text-xs font-semibold">Pendiente</span>
+                                                    </div>`;
                             }
 
                             contenedorTomas.innerHTML += htmlToma;
