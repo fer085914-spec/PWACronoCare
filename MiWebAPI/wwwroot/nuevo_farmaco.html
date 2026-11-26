@@ -4,6 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CronoCare - Registrar Fármaco</title>
+    <!--
+        Corre antes de renderizar el <body> para evitar contenido protegido sino hay sesión activa
+    -->
+    <script>
+        (function () {
+            function tieneSesionValida() {
+                const guardado = localStorage.getItem('usuarioLogueado');
+                if (!guardado) return false;
+                try {
+                    const u = JSON.parse(guardado);
+                    const id = u && (u.id ?? u.idUsuario);
+                    return Boolean(id);
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            if (!tieneSesionValida()) {
+                document.documentElement.style.display = 'none';
+                window.location.replace('login.html');
+                return;
+            }
+
+            // 'pageshow' con event.persisted === true detecta cuando la vista se restaura desde la BFCache al navegar con Atrás/Adelante
+            window.addEventListener('pageshow', (event) => {
+                if (event.persisted && !tieneSesionValida()) {
+                    document.documentElement.style.display = 'none';
+                    window.location.replace('login.html');
+                }
+            });
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -22,132 +54,174 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col">
+<body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col text-crono-dark">
 
+    <!-- Menú lateral deslizable-->
     <div id="sidebar" class="fixed inset-y-0 right-0 w-64 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
         <div class="p-5 bg-crono-blue text-white flex justify-between items-center">
-            <span class="font-bold text-lg">Menú CronoCare</span>
+            <span class="font-bold text-base">Menú CronoCare</span>
             <button id="closeSidebar" class="text-white hover:text-gray-200">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
-        <div class="flex flex-col p-6 gap-6">
+        <div class="flex flex-col p-6 gap-5 text-sm">
             <a href="index.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">🏠</span> Inicio
+                <span class="text-lg">🏠</span> Inicio
             </a>
             <a href="hoy.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">📅</span> Agenda de Hoy
+                <span class="text-lg">📅</span> Agenda de Hoy
             </a>
+            <a href="perfiles.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-lg">👥</span> Perfiles
+            </a>
+            <!-- Vista activa en el menú lateral -->
             <a href="nuevo_farmaco.html" class="text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">➕</span> Nuevo Registro
+                <span class="text-lg">➕</span> Nuevo Registro
             </a>
             <a href="listo.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">✅</span> Terminados
+                <span class="text-lg">✅</span> Terminados
             </a>
             <hr>
             <button id="btnCerrarSesionLateral" class="text-left text-red-500 hover:text-red-700 font-semibold flex items-center gap-2">
-                <span class="text-xl">🚪</span> Salir
+                <span class="text-lg">🚪</span> Salir
             </button>
         </div>
     </div>
 
+    <!-- Fondo  del menú lateral -->
     <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40 transition-opacity"></div>
 
-    <div class="bg-crono-blue text-white p-4 md:px-8 md:py-5 shadow-md flex justify-between items-center z-10 w-full">
-        <a href="index.html" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Ir al inicio">
-            <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm rounded-full">
-                <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
-            </div>
-            <h1 class="text-2xl md:text-3xl font-bold tracking-wide">CronoCare</h1>
-        </a>
-        <button id="openSidebar" class="hidden md:block text-white hover:text-crono-light transition-colors">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-        </button>
-    </div>
+    <div class="w-full min-h-screen relative flex flex-col md:flex-row flex-1">
 
-    <div class="flex-1 pb-24 md:pb-12 w-full max-w-xl mx-auto flex flex-col p-6 mt-4">
-
-        <div class="flex items-center mb-4 w-full">
-            <a href="perfiles.html" class="text-gray-700 hover:text-crono-teal transition-colors flex-shrink-0" title="Cambiar de perfil">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
-                </svg>
-            </a>
-            <h2 class="text-lg md:text-xl font-bold text-center text-crono-dark tracking-wide flex-1 mr-8 uppercase">REGISTRAR FÁRMACO</h2>
-        </div>
-
-        <div id="badgePerfilActivo" class="bg-crono-light border border-crono-teal/30 p-3 rounded-2xl mb-5 flex items-center justify-between shadow-sm">
-            <div class="flex items-center gap-2">
-                <span class="text-xl">👤</span>
-                <div>
-                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Asignado a:</p>
-                    <p id="nombrePerfilSeleccionado" class="text-sm font-bold text-crono-blue">Cargando perfil...</p>
-                </div>
-            </div>
-            <a href="perfiles.html" class="text-xs font-bold text-crono-teal hover:underline bg-white px-3 py-1.5 rounded-full shadow-xs">Cambiar</a>
-        </div>
-
-        <!-- Previsualización de la foto en la parte superior si ya fue tomada -->
-        <div id="contenedorPreviewFoto" class="hidden mb-5 w-full bg-white p-3 rounded-3xl shadow-sm border border-gray-200">
-            <div class="relative w-full h-44 bg-gray-100 rounded-2xl overflow-hidden border border-gray-200">
-                <img id="imgPreviewFoto" src="" alt="Vista previa del fármaco" class="w-full h-full object-cover">
-                <span class="absolute bottom-2 left-2 bg-black/65 text-white text-[11px] font-semibold px-3 py-1 rounded-full">
-                    📷 Fotografía adjuntada
-                </span>
-                <button type="button" id="btnQuitarFoto" class="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow transition-colors">
-                    Quitar
-                </button>
-            </div>
-        </div>
-
-        <form id="formFarmaco" class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-200 flex flex-col gap-5">
-
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1 pl-1">Nombre del medicamento:</label>
-                <input type="text" id="nombreMedicamento" class="w-full bg-gray-100 border-2 border-transparent rounded-full px-4 py-2.5 focus:outline-none focus:border-crono-teal shadow-inner" placeholder="Ej. Paracetamol" required>
-            </div>
-
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1 pl-1">Vía de administración:</label>
-                <select id="viaAdmin" class="w-full bg-gray-100 border-2 border-transparent rounded-full px-4 py-2.5 focus:outline-none focus:border-crono-teal shadow-inner text-gray-700" required>
-                    <option value="" disabled selected>Cargando vías...</option>
-                </select>
-            </div>
-
-            <div class="flex gap-4">
-                <div class="flex-1">
-                    <label class="block text-sm font-bold text-gray-700 mb-1 pl-1">Intervalo (horas):</label>
-                    <input type="number" id="intervalo" min="1" max="24" class="w-full bg-gray-100 border-2 border-transparent rounded-full px-4 py-2.5 text-center font-semibold focus:outline-none focus:border-crono-teal shadow-inner" placeholder="--" required>
-                </div>
-                <div class="flex-1">
-                    <label class="block text-sm font-bold text-gray-700 mb-1 pl-1">Duración (días):</label>
-                    <input type="number" id="duracion" min="1" class="w-full bg-gray-100 border-2 border-transparent rounded-full px-4 py-2.5 text-center font-semibold focus:outline-none focus:border-crono-teal shadow-inner" placeholder="--" required>
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1 pl-1 text-center">Hora de la primera toma:</label>
-                <div class="flex justify-center">
-                    <input type="time" id="horaToma" class="bg-gray-200 border-2 border-transparent rounded-full px-6 py-2 text-center font-bold text-lg focus:outline-none focus:border-crono-teal shadow-inner" required>
-                </div>
-            </div>
-
-            <div class="flex flex-col gap-3 mt-4">
-                <a href="tomar_fotografia.html" class="w-full bg-crono-teal text-white font-bold py-3 rounded-full hover:bg-crono-blue transition-colors shadow-md text-sm tracking-wide block text-center">
-                    TOMAR FOTOGRAFÍA
+        <aside class="hidden md:flex md:w-72 md:shrink-0 md:flex-col md:justify-between bg-[#2B7A96] text-white md:min-h-screen md:sticky md:top-0 shadow-md z-20">
+            <div class="p-7 flex flex-col">
+                <a href="index.html" class="flex items-center gap-3.5 mb-9 pb-4 border-b border-white/15 hover:opacity-95 transition-opacity" title="Ir al inicio">
+                    <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-white/30">
+                        <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-contain">
+                    </div>
+                    <span class="text-2xl font-bold tracking-wide text-white">CronoCare</span>
                 </a>
-                <div class="flex gap-3">
-                    <button type="button" id="btnCancelarRegistro" class="w-1/2 bg-gray-200 text-gray-700 font-bold py-3 rounded-full hover:bg-gray-300 transition-colors shadow-sm text-sm tracking-wide">
-                        CANCELAR
+
+                <nav class="flex flex-col gap-2.5 text-base">
+                    <a href="index.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Inicio</span>
+                    </a>
+                    <a href="hoy.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Hoy</span>
+                    </a>
+                    <a href="perfiles.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Perfiles</span>
+                    </a>
+                    <a href="listo.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Terminados</span>
+                    </a>
+                    <button type="button" id="btnCerrarSesionPc" class="text-left text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors mt-1">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Salir</span>
                     </button>
-                    <button type="submit" id="btnGuardar" class="w-1/2 bg-crono-blue text-white font-bold py-3 rounded-full hover:bg-blue-700 transition-colors shadow-md text-sm tracking-wide">
-                        GUARDAR
-                    </button>
-                </div>
+                </nav>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col min-w-0">
+
+            <div class="md:hidden bg-[#2B7A96] text-white p-4 shadow-md flex justify-between items-center z-10 w-full">
+                <a href="index.html" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Ir al inicio">
+                    <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm rounded-full">
+                        <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
+                    </div>
+                    <h1 class="text-2xl font-bold tracking-wide">CronoCare</h1>
+                </a>
             </div>
 
-            <div id="mensajeAlerta" class="hidden text-center font-semibold mt-2 text-sm"></div>
-        </form>
+            <div class="flex-1 pb-24 md:pb-14 w-full max-w-xl md:max-w-4xl mx-auto flex flex-col p-6 md:px-12 md:pt-9 mt-4 md:mt-0">
+
+                <div class="flex items-center justify-center mb-5 md:mb-6 w-full">
+                    <h2 class="text-lg md:text-2xl font-bold text-center text-crono-dark tracking-wide uppercase">REGISTRAR FÁRMACO</h2>
+                </div>
+
+                <div id="badgePerfilActivo" class="bg-white/85 md:bg-white border border-crono-teal/30 px-4 py-3 md:px-7 md:py-4 rounded-2xl md:rounded-full mb-6 flex items-center justify-between shadow-2xs">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <span class="text-xl shrink-0">👤</span>
+                        <div class="min-w-0">
+                            <p class="text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-wider leading-tight">ASIGNADO A:</p>
+                            <p id="nombrePerfilSeleccionado" class="text-xs md:text-base font-bold text-crono-dark uppercase truncate mt-0.5">PERFIL SELECCIONADO</p>
+                        </div>
+                    </div>
+                    <a href="perfiles.html" class="text-xs md:text-sm font-bold text-white bg-crono-teal/80 hover:bg-crono-blue transition-colors px-4 py-2 rounded-full shadow-2xs shrink-0 ml-3">
+                        Cambiar
+                    </a>
+                </div>
+
+                <!-- Vista de la fotografía capturada en tomar_fotografia.html -->
+                <div id="contenedorPreviewFoto" class="hidden mb-6 w-full bg-white p-4 rounded-3xl shadow-sm border border-gray-200">
+                    <div class="relative w-full h-48 bg-gray-100 rounded-2xl overflow-hidden border border-gray-200">
+                        <img id="imgPreviewFoto" src="" alt="Vista previa del fármaco" class="w-full h-full object-cover">
+                        <span class="absolute bottom-2 left-2 bg-black/65 text-white text-[11px] font-semibold px-3 py-1 rounded-full">
+                            📷 Fotografía adjuntada
+                        </span>
+                        <button type="button" id="btnQuitarFoto" class="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow transition-colors">
+                            Quitar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Formulario para crear un nuevo esquema -->
+                <form id="formFarmaco" class="bg-white p-6 md:p-10 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-5 md:gap-6">
+
+                    <div>
+                        <label class="block text-sm font-bold text-crono-dark mb-2 pl-1">Nombre del medicamento:</label>
+                        <input type="text" id="nombreMedicamento" class="w-full bg-[#DCE6EA] md:bg-white border border-transparent md:border-gray-300 rounded-full px-4 md:px-5 py-2.5 md:py-3 text-sm text-crono-dark focus:outline-none focus:border-crono-teal transition-colors" placeholder="Ej. Paracetamol" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-crono-dark mb-2 pl-1">Vía de administración:</label>
+                        <select id="viaAdmin" class="w-full bg-[#DCE6EA] md:bg-white border border-transparent md:border-gray-300 rounded-full px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:border-crono-teal text-crono-dark transition-colors" required>
+                            <option value="" disabled selected>Cargando vías...</option>
+                        </select>
+                    </div>
+
+                    <div class="flex gap-4 md:gap-6">
+                        <div class="flex-1">
+                            <label class="block text-sm font-bold text-crono-dark mb-2 pl-1">Intervalo (horas):</label>
+                            <input type="number" id="intervalo" min="1" max="24" class="w-full bg-[#DCE6EA] md:bg-white border border-transparent md:border-gray-300 rounded-full px-4 py-2.5 md:py-3 text-sm text-center font-semibold text-crono-dark focus:outline-none focus:border-crono-teal transition-colors" placeholder="--" required>
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-sm font-bold text-crono-dark mb-2 pl-1">Duración (días):</label>
+                            <input type="number" id="duracion" min="1" class="w-full bg-[#DCE6EA] md:bg-white border border-transparent md:border-gray-300 rounded-full px-4 py-2.5 md:py-3 text-sm text-center font-semibold text-crono-dark focus:outline-none focus:border-crono-teal transition-colors" placeholder="--" required>
+                        </div>
+                    </div>
+
+                    <div class="pt-1">
+                        <label class="block text-sm font-bold text-crono-dark mb-2 pl-1 text-center">Hora de la primera toma:</label>
+                        <div class="flex justify-center">
+                            <input type="time" id="horaToma" class="bg-[#DCE6EA] md:bg-white border border-transparent md:border-gray-300 rounded-full px-6 md:px-8 py-2.5 text-center font-bold text-sm md:text-base text-crono-dark focus:outline-none focus:border-crono-teal transition-colors" required>
+                        </div>
+                    </div>
+
+                    <!-- captura fotográfica, descarte y envío del formulario -->
+                    <div class="flex flex-col gap-3.5 mt-3">
+                        <a href="tomar_fotografia.html" class="w-full bg-crono-teal text-white font-bold py-3 md:py-3.5 rounded-full hover:bg-crono-blue transition-colors shadow-xs text-xs md:text-sm tracking-wider block text-center uppercase">
+                            TOMAR FOTOGRAFÍA
+                        </a>
+                        <div class="flex gap-3 md:gap-4">
+                            <button type="button" id="btnCancelarRegistro" class="w-1/2 bg-[#C8CED2] text-crono-dark font-bold py-3 md:py-3.5 rounded-full hover:bg-gray-300 transition-colors text-xs md:text-sm tracking-wider uppercase">
+                                CANCELAR
+                            </button>
+                            <button type="submit" id="btnGuardar" class="w-1/2 bg-crono-blue text-white font-bold py-3 md:py-3.5 rounded-full hover:bg-[#1F5E80] transition-colors shadow-xs text-xs md:text-sm tracking-wider uppercase">
+                                GUARDAR
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="mensajeAlerta" class="hidden text-center font-semibold mt-2 text-sm"></div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <div class="md:hidden fixed bottom-0 w-full h-16 bg-white border-t border-gray-200 flex justify-between items-center px-2 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-30">
@@ -163,7 +237,7 @@
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <span class="text-[9px] font-bold mt-1">LISTO</span>
         </a>
-        <button id="btnCerrarSesion" class="flex flex-col items-center text-gray-400 hover:text-red-500 w-1/5 transition-colors" onclick="cerrarSesion()">
+        <button type="button" id="btnCerrarSesion" class="flex flex-col items-center text-gray-400 hover:text-red-500 w-1/5 transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
             <span class="text-[9px] font-bold mt-1">SALIR</span>
         </button>
@@ -185,6 +259,7 @@
         if (closeBtn) closeBtn.addEventListener('click', toggleMenu);
         if (overlay) overlay.addEventListener('click', toggleMenu);
 
+        // --- Constantes y helpers de sesión ---
         const CLAVE_SESION = 'usuarioLogueado';
 
         function obtenerUsuarioSesion() {
@@ -200,12 +275,34 @@
             }
         }
 
+        function verificarSesionActiva() {
+            if (!obtenerUsuarioSesion()) {
+                document.documentElement.style.display = 'none';
+                window.location.replace('login.html');
+                return false;
+            }
+            document.documentElement.style.display = '';
+            return true;
+        }
+
+        // Limpiar la sesión y los datos temporales del flujo (perfil y foto) antes de ir al login
         function cerrarSesion() {
+            document.documentElement.style.display = 'none';
             localStorage.removeItem(CLAVE_SESION);
             sessionStorage.removeItem('perfilSeleccionado');
             sessionStorage.removeItem('fotoMedicamentoTemp');
             window.location.replace('login.html');
         }
+
+        document.getElementById('btnCerrarSesionPc')?.addEventListener('click', cerrarSesion);
+        document.getElementById('btnCerrarSesion')?.addEventListener('click', cerrarSesion);
+        document.getElementById('btnCerrarSesionLateral')?.addEventListener('click', cerrarSesion);
+
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                verificarSesionActiva();
+            }
+        });
 
         const API = '/api/Auth';
 
@@ -220,13 +317,14 @@
             return datos;
         }
 
+        // Obtiene las vías de administración desde el catálogo
         async function cargarViasAdministracion() {
             const selectVia = document.getElementById('viaAdmin');
             if (!selectVia) return;
 
             try {
                 const vias = await llamarApi(`${API}/catalogos/vias-administracion`);
-                selectVia.innerHTML = '<option value="" disabled selected>Selecciona una opción</option>';
+                selectVia.innerHTML = '<option value="" disabled selected>Seleccionar</option>';
                 vias.forEach(via => {
                     const opcion = document.createElement('option');
                     opcion.value = via.idVia;
@@ -239,19 +337,17 @@
             }
         }
 
+        // Estado en memoria del usuario autenticado y del perfil de cuidado al que se asignará el fármaco
         let usuarioActual = null;
         let perfilActivo = null;
 
         document.addEventListener('DOMContentLoaded', () => {
+            if (!verificarSesionActiva()) return;
             usuarioActual = obtenerUsuarioSesion();
-
-            if (!usuarioActual) {
-                window.location.replace('login.html');
-                return;
-            }
 
             cargarViasAdministracion();
 
+            // validacion de asociaciòn a un perfil de cuidado 
             const perfilGuardado = sessionStorage.getItem('perfilSeleccionado');
             const etiquetaNombre = document.getElementById('nombrePerfilSeleccionado');
 
@@ -271,7 +367,7 @@
                 window.location.replace("perfiles.html");
             }
 
-            // Verificar si hay una foto tomada previamente guardada en sessionStorage
+            // Si el usuario regresó desde tomar_fotografia.html con una foto capturada, muestra su vista previa
             const fotoTemporal = sessionStorage.getItem('fotoMedicamentoTemp');
             const contenedorPreview = document.getElementById('contenedorPreviewFoto');
             const imgPreview = document.getElementById('imgPreviewFoto');
@@ -280,14 +376,14 @@
                 contenedorPreview.classList.remove('hidden');
             }
 
-            // Quitar foto si el usuario lo desea
+            // Permite descartar la foto temporal sin salir del formulario
             document.getElementById('btnQuitarFoto')?.addEventListener('click', () => {
                 sessionStorage.removeItem('fotoMedicamentoTemp');
                 if (imgPreview) imgPreview.src = '';
                 if (contenedorPreview) contenedorPreview.classList.add('hidden');
             });
 
-            // Confirmación para cancelar registro de nuevo fármaco
+            // Confirmacion antes de descartar el alta y limpia la foto temporal si acepta
             document.getElementById('btnCancelarRegistro')?.addEventListener('click', async () => {
                 const confirmacion = await Swal.fire({
                     title: '¿Descartar fármaco?',
@@ -312,8 +408,10 @@
             });
         });
 
+        // --- Envío del formulario para crear el fármaco y generar su calendario de tomas ---
         document.getElementById('formFarmaco').addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (!verificarSesionActiva()) return;
             const btnGuardar = document.getElementById('btnGuardar');
             const mensajeAlerta = document.getElementById('mensajeAlerta');
 
@@ -323,7 +421,8 @@
                 return;
             }
 
-            btnGuardar.disabled = true;
+            // Bloqueo el botón durante la petición para evitar duplicados
+            btnGuardard.disabled = true;
             btnGuardar.textContent = "GUARDANDO...";
             mensajeAlerta.classList.add("hidden");
 
@@ -348,6 +447,7 @@
                     body: JSON.stringify(nuevoMedicamento)
                 });
 
+                // Limpiar la foto una vez registrada en el backend
                 sessionStorage.removeItem('fotoMedicamentoTemp');
 
                 mensajeAlerta.textContent = "¡Fármaco guardado correctamente!";
@@ -359,12 +459,11 @@
                 mensajeAlerta.textContent = error.message;
                 mensajeAlerta.className = "text-center font-bold mt-3 text-sm text-red-500 block";
             } finally {
+                // Restaurar el botón aunque ocurra un error en la petición
                 btnGuardar.disabled = false;
                 btnGuardar.textContent = "GUARDAR";
             }
         });
-
-        document.getElementById('btnCerrarSesionLateral')?.addEventListener('click', cerrarSesion);
     </script>
 </body>
 </html>

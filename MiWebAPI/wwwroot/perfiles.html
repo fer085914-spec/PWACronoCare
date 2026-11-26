@@ -4,6 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CronoCare - Perfiles de Cuidado</title>
+    <!--
+        Corre antes de renderizar el <body> para evitar contenido protegido sino hay sesión activa
+    -->
+    <script>
+        (function () {
+            function tieneSesionValida() {
+                const guardado = localStorage.getItem('usuarioLogueado');
+                if (!guardado) return false;
+                try {
+                    const u = JSON.parse(guardado);
+                    const id = u && (u.id ?? u.idUsuario);
+                    return Boolean(id);
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            if (!tieneSesionValida()) {
+                document.documentElement.style.display = 'none';
+                window.location.replace('login.html');
+                return;
+            }
+
+            // 'pageshow' con event.persisted === true detecta si la página vuelve desde la BFCache al navegar con Atrás o Adelante
+            window.addEventListener('pageshow', (event) => {
+                if (event.persisted && !tieneSesionValida()) {
+                    document.documentElement.style.display = 'none';
+                    window.location.replace('login.html');
+                }
+            });
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -22,100 +54,150 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col">
+<body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col text-crono-dark">
 
+    <!-- Menú lateral deslizable -->
     <div id="sidebar" class="fixed inset-y-0 right-0 w-64 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
         <div class="p-5 bg-crono-blue text-white flex justify-between items-center">
-            <span class="font-bold text-lg">Menú CronoCare</span>
+            <span class="font-bold text-base">Menú CronoCare</span>
             <button id="closeSidebar" class="text-white hover:text-gray-200">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
-        <div class="flex flex-col p-6 gap-6">
+        <div class="flex flex-col p-6 gap-5 text-sm">
             <a href="index.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">🏠</span> Inicio
+                <span class="text-lg">🏠</span> Inicio
             </a>
             <a href="hoy.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">📅</span> Agenda de Hoy
+                <span class="text-lg">📅</span> Agenda de Hoy
             </a>
-            <a href="nuevo_farmaco.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">➕</span> Nuevo Registro
+            <!-- Vista activa en el menú lateral -->
+            <a href="perfiles.html" class="text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-lg">👥</span> Perfiles
             </a>
             <a href="listo.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">✅</span> Terminados
+                <span class="text-lg">✅</span> Terminados
             </a>
             <hr>
             <button id="btnCerrarSesionLateral" class="text-left text-red-500 hover:text-red-700 font-semibold flex items-center gap-2">
-                <span class="text-xl">🚪</span> Salir
+                <span class="text-lg">🚪</span> Salir
             </button>
         </div>
     </div>
 
+    <!-- Fondo del menú lateral -->
     <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40 transition-opacity"></div>
 
-    <div class="bg-crono-blue text-white p-4 md:px-8 md:py-5 shadow-md flex justify-between items-center z-10 w-full">
-        <a href="index.html" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Ir al inicio">
-            <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm rounded-full">
-                <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
+    <div class="w-full min-h-screen relative flex flex-col md:flex-row flex-1">
+
+        <aside class="hidden md:flex md:w-72 md:shrink-0 md:flex-col md:justify-between bg-[#2B7A96] text-white md:min-h-screen md:sticky md:top-0 shadow-md z-20">
+            <div class="p-7 flex flex-col">
+                <a href="index.html" class="flex items-center gap-3.5 mb-9 pb-4 border-b border-white/15 hover:opacity-95 transition-opacity" title="Ir al inicio">
+                    <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-white/30">
+                        <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-contain">
+                    </div>
+                    <span class="text-2xl font-bold tracking-wide text-white">CronoCare</span>
+                </a>
+
+                <nav class="flex flex-col gap-2.5 text-base">
+                    <a href="index.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Inicio</span>
+                    </a>
+                    <a href="hoy.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Hoy</span>
+                    </a>
+                    <a href="perfiles.html" aria-current="page" class="bg-white/25 text-white font-bold px-4 py-3 rounded-full flex items-center gap-3 shadow-xs ring-1 ring-white/35 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-white shrink-0"></span>
+                        <span>Perfiles</span>
+                    </a>
+                    <a href="listo.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Terminados</span>
+                    </a>
+                    <button type="button" id="btnCerrarSesionPc" class="text-left text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors mt-1">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Salir</span>
+                    </button>
+                </nav>
             </div>
-            <h1 class="text-2xl md:text-3xl font-bold tracking-wide">CronoCare</h1>
-        </a>
-        <button id="openSidebar" class="hidden md:block text-white hover:text-crono-light transition-colors">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-        </button>
+
+            <div class="p-7">
+                <a href="perfiles.html" class="w-full bg-[#1F657D] hover:bg-[#195367] text-white font-semibold py-3 px-4 rounded-full flex items-center justify-center gap-2.5 shadow-sm transition-colors text-sm">
+                    <span class="text-xl leading-none font-bold">+</span>
+                    <span>Nuevo fármaco</span>
+                </a>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col min-w-0">
+
+            <div class="md:hidden bg-[#2B7A96] text-white p-4 shadow-md flex justify-between items-center z-10 w-full">
+                <a href="index.html" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Ir al inicio">
+                    <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm rounded-full">
+                        <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
+                    </div>
+                    <h1 class="text-2xl font-bold tracking-wide">CronoCare</h1>
+                </a>
+            </div>
+
+            <div class="flex-1 pb-24 md:pb-10 w-full max-w-4xl mx-auto flex flex-col p-6 md:px-10 md:pt-10 mt-2 md:mt-0">
+
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+                    <div>
+                        <h2 class="text-xl md:text-2xl font-bold text-crono-dark uppercase tracking-wide">PERFILES DE CUIDADO</h2>
+                        <p class="text-gray-600 text-sm md:text-base mt-0.5">Haz clic en una tarjeta para registrarle un fármaco</p>
+                    </div>
+                    <button type="button" id="btnAbrirModalNuevoPerfil" class="bg-crono-teal text-white font-bold py-2.5 px-5 rounded-full hover:bg-crono-blue transition-colors text-xs md:text-sm shadow-sm flex items-center justify-center gap-2 shrink-0 self-start sm:self-auto">
+                        <span class="text-base leading-none">+</span>
+                        <span>Nuevo perfil</span>
+                    </button>
+                </div>
+
+                <!-- Contenedor donde se muestran dinámicamente las tarjetas de perfiles -->
+                <div id="listaPerfiles" class="flex flex-col gap-4">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm text-center">
+                        <p class="text-gray-500 text-sm">Cargando perfiles...</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
     </div>
 
-    <div class="flex-1 pb-24 md:pb-8 w-full max-w-3xl mx-auto flex flex-col p-6 mt-2">
-
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h2 class="text-xl md:text-2xl font-bold text-crono-dark uppercase tracking-wide">PERFILES DE CUIDADO</h2>
-                <p class="text-gray-600 text-sm md:text-base">Haz clic en una tarjeta para registrarle un fármaco</p>
-            </div>
-            <button id="btnAbrirModalNuevoPerfil" class="bg-crono-teal text-white font-bold py-2.5 px-5 rounded-full hover:bg-crono-blue transition-colors text-xs md:text-sm shadow-md flex items-center gap-2">
-                <span>➕</span> Nuevo Perfil
-            </button>
-        </div>
-
-        <div id="listaPerfiles" class="flex flex-col gap-4">
-            <div class="bg-white p-6 rounded-2xl shadow-sm text-center">
-                <p class="text-gray-500">Cargando perfiles...</p>
-            </div>
-        </div>
-
-    </div>
-
+    <!-- dar de alta un nuevo perfil de cuidado -->
     <div id="modalPerfil" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl flex flex-col gap-5 relative animate-fade-in">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="text-lg font-bold text-crono-dark">Crear Perfil de Cuidado</h3>
-                <button id="btnCerrarModal" type="button" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 md:p-7 shadow-2xl flex flex-col gap-5 relative animate-fade-in">
+            <div class="flex justify-between items-center border-b border-gray-200 pb-3.5">
+                <h3 class="text-lg md:text-xl font-bold text-crono-dark">Crear Perfil de Cuidado</h3>
+                <button id="btnCerrarModal" type="button" class="text-gray-400 hover:text-gray-600 text-2xl leading-none font-bold">&times;</button>
             </div>
 
             <form id="formNuevoPerfil" class="flex flex-col gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1 pl-1">Parentesco / Tipo de perfil:</label>
-                    <select id="tipoPerfilModal" class="w-full bg-gray-50 border-2 border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-crono-teal" required>
+                    <label class="block text-xs md:text-sm font-bold text-crono-dark mb-1.5 pl-1">Parentesco / Tipo de perfil:</label>
+                    <select id="tipoPerfilModal" class="w-full bg-[#EEF2F5] border border-gray-200 rounded-full px-4 py-2.5 text-sm text-crono-dark focus:outline-none focus:border-crono-teal" required>
                         <option value="" disabled selected>Selecciona una opción</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1 pl-1">Nombre completo:</label>
-                    <input type="text" id="nombrePacienteModal" maxlength="100" placeholder="Ej. Ana García" class="w-full bg-gray-50 border-2 border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-crono-teal" required>
+                    <label class="block text-xs md:text-sm font-bold text-crono-dark mb-1.5 pl-1">Nombre completo:</label>
+                    <input type="text" id="nombrePacienteModal" maxlength="100" placeholder="Ej. Ana García" class="w-full bg-[#EEF2F5] border border-gray-200 rounded-full px-4 py-2.5 text-sm text-crono-dark focus:outline-none focus:border-crono-teal" required>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1 pl-1">Fecha de nacimiento:</label>
-                    <input type="date" id="fechaNacimientoModal" class="w-full bg-gray-50 border-2 border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-crono-teal text-center" required>
+                    <label class="block text-xs md:text-sm font-bold text-crono-dark mb-1.5 pl-1">Fecha de nacimiento:</label>
+                    <input type="date" id="fechaNacimientoModal" class="w-full bg-[#EEF2F5] border border-gray-200 rounded-full px-4 py-2.5 text-sm text-crono-dark focus:outline-none focus:border-crono-teal text-center" required>
                 </div>
 
-                <div class="flex gap-3 mt-4">
-                    <button type="button" id="btnCancelarModal" class="w-1/2 bg-gray-200 text-gray-700 font-bold py-3 rounded-full hover:bg-gray-300 transition-colors text-xs uppercase tracking-wider">
-                        Cancelar
+                <div class="flex gap-3 mt-3">
+                    <button type="button" id="btnCancelarModal" class="w-1/2 bg-[#E5E7EB] text-crono-dark font-bold py-3 rounded-full hover:bg-gray-300 transition-colors text-xs uppercase tracking-wider">
+                        CANCELAR
                     </button>
-                    <button type="submit" id="btnGuardarPerfil" class="w-1/2 bg-crono-teal text-white font-bold py-3 rounded-full hover:bg-crono-blue transition-colors text-xs uppercase tracking-wider shadow-md disabled:opacity-60">
-                        Guardar Perfil
+                    <button type="submit" id="btnGuardarPerfil" class="w-1/2 bg-crono-teal text-white font-bold py-3 rounded-full hover:bg-crono-blue transition-colors text-xs uppercase tracking-wider shadow-sm disabled:opacity-60">
+                        GUARDAR PERFIL
                     </button>
                 </div>
             </form>
@@ -135,7 +217,7 @@
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <span class="text-[9px] font-bold mt-1">LISTO</span>
         </a>
-        <button id="btnCerrarSesion" class="flex flex-col items-center text-gray-400 hover:text-red-500 w-1/5 transition-colors" onclick="cerrarSesion()">
+        <button type="button" id="btnCerrarSesion" class="flex flex-col items-center text-gray-400 hover:text-red-500 w-1/5 transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
             <span class="text-[9px] font-bold mt-1">SALIR</span>
         </button>
@@ -157,6 +239,7 @@
         if (closeBtn) closeBtn.addEventListener('click', toggleMenu);
         if (overlay) overlay.addEventListener('click', toggleMenu);
 
+        // --- Constantes y gestión de sesión ---
         const CLAVE_SESION = 'usuarioLogueado';
 
         function obtenerUsuarioSesion() {
@@ -172,13 +255,36 @@
             }
         }
 
+        function verificarSesionActiva() {
+            if (!obtenerUsuarioSesion()) {
+                document.documentElement.style.display = 'none';
+                window.location.replace('login.html');
+                return false;
+            }
+            document.documentElement.style.display = '';
+            return true;
+        }
+
+        // Limpiar credenciales y perfil seleccionado en ambos storages antes de redirigir al login
         function cerrarSesion() {
+            document.documentElement.style.display = 'none';
             localStorage.removeItem(CLAVE_SESION);
             sessionStorage.removeItem(CLAVE_SESION);
             sessionStorage.removeItem('perfilSeleccionado');
             window.location.replace('login.html');
         }
 
+        document.getElementById('btnCerrarSesionPc')?.addEventListener('click', cerrarSesion);
+        document.getElementById('btnCerrarSesion')?.addEventListener('click', cerrarSesion);
+        document.getElementById('btnCerrarSesionLateral')?.addEventListener('click', cerrarSesion);
+
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                verificarSesionActiva();
+            }
+        });
+
+        // mostrar alertas
         function mostrarAlertaCrono(titulo, mensaje, tipo = 'info', textoBoton = 'Aceptar') {
             return Swal.fire({
                 title: titulo,
@@ -214,6 +320,7 @@
             return elemento;
         }
 
+        // Convertir 'YYYY-MM-DD' a 'DD/MM/YYYY' 
         function formatearFecha(iso) {
             if (!iso) return '';
             const [anio, mes, dia] = iso.split('-');
@@ -222,21 +329,20 @@
 
         let cantidadPerfiles = 0;
 
+        // Reemplazar el listado de perfiles por un bloque de estado vacío o error
         function mostrarMensajeLista(texto) {
             const contenedor = document.getElementById('listaPerfiles');
             contenedor.replaceChildren();
 
             const caja = crearElemento('div', 'bg-white p-6 rounded-2xl shadow-sm text-center');
-            caja.appendChild(crearElemento('p', 'text-gray-500', texto));
+            caja.appendChild(crearElemento('p', 'text-gray-500 text-sm', texto));
             contenedor.appendChild(caja);
         }
 
+        // confirmación y elimina el perfil junto con sus medicamentos asociados en el backend
         async function confirmarYOCultarPerfil(perfil) {
+            if (!verificarSesionActiva()) return;
             const usuario = obtenerUsuarioSesion();
-            if (!usuario) {
-                window.location.replace('login.html');
-                return;
-            }
 
             const confirmacion = await Swal.fire({
                 title: '¿Eliminar perfil?',
@@ -261,6 +367,7 @@
                     method: 'DELETE'
                 });
 
+                // Si el perfil eliminado era el que estaba guardado como seleccionado en sesión, se limpia
                 const guardadoPerfil = sessionStorage.getItem('perfilSeleccionado');
                 if (guardadoPerfil) {
                     try {
@@ -290,31 +397,34 @@
             }
         }
 
+        // tarjeta interactiva de cada perfil con soporte de clic, teclado y botón de eliminar
         function crearTarjetaPerfil(perfil) {
             const tarjeta = crearElemento('div',
-                'bg-white p-5 rounded-2xl shadow-sm border-2 border-crono-teal flex items-center justify-between gap-3 relative cursor-pointer hover:bg-crono-light/20 transition-all');
+                'bg-white p-5 md:px-6 md:py-4 rounded-2xl md:rounded-full shadow-sm border-2 border-crono-teal flex items-center justify-between gap-3 relative cursor-pointer hover:bg-crono-light/20 transition-all');
             tarjeta.tabIndex = 0;
             tarjeta.setAttribute('role', 'button');
 
             const izquierda = crearElemento('div', 'flex items-center gap-4 min-w-0');
-            izquierda.appendChild(crearElemento('div',
-                'w-12 h-12 bg-crono-light text-crono-teal rounded-full flex items-center justify-center font-bold text-xl flex-shrink-0', '👤'));
+            const avatar = crearElemento('div',
+                'w-12 h-12 bg-[#DCEEEF] text-crono-blue rounded-full flex items-center justify-center flex-shrink-0');
+            avatar.innerHTML = `<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>`;
+            izquierda.appendChild(avatar);
 
             const info = crearElemento('div', 'min-w-0');
             const fila = crearElemento('div', 'flex items-center gap-2 flex-wrap');
-            fila.appendChild(crearElemento('h3', 'font-bold text-crono-dark text-lg truncate', perfil.nombre));
+            fila.appendChild(crearElemento('h3', 'font-bold text-crono-dark text-base md:text-lg truncate', perfil.nombre));
             fila.appendChild(crearElemento('span',
                 'bg-crono-teal text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase', perfil.tipoPerfil));
             info.appendChild(fila);
-            info.appendChild(crearElemento('p', 'text-xs text-gray-500 mt-1',
+            info.appendChild(crearElemento('p', 'text-xs text-gray-500 mt-0.5',
                 `Edad: ${perfil.edad} años | Fecha Nac: ${formatearFecha(perfil.fechaNacimiento)}`));
             izquierda.appendChild(info);
 
             const derecha = crearElemento('div', 'flex items-center gap-3 flex-shrink-0');
-            derecha.appendChild(crearElemento('span', 'text-crono-teal font-bold text-sm hidden md:inline', 'Seleccionar →'));
+            derecha.appendChild(crearElemento('span', 'text-crono-teal font-bold text-xs md:text-sm hidden md:inline', 'Seleccionar →'));
 
             const btnEliminar = crearElemento('button',
-                'bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs px-3 py-2 rounded-full border border-red-200 transition-colors',
+                'bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs px-3.5 py-1.5 rounded-full border border-red-200 transition-colors',
                 'Eliminar');
             btnEliminar.type = 'button';
             btnEliminar.setAttribute('aria-label', `Eliminar perfil de ${perfil.nombre}`);
@@ -339,16 +449,16 @@
             return tarjeta;
         }
 
+        // obtener los perfiles del usuario y actualizar la lista en pantalla
         async function cargarPerfiles(idUsuario) {
             const contenedor = document.getElementById('listaPerfiles');
 
             try {
-                // Usa el endpoint del selector para listar todos los perfiles visibles del usuario
                 const perfiles = await llamarApi(`${API}/perfiles/selector/${idUsuario}`);
                 cantidadPerfiles = perfiles.length;
 
                 if (perfiles.length === 0) {
-                    mostrarMensajeLista('No tienes perfiles creados todavía. Usa el botón "Nuevo Perfil" para crear el primero.');
+                    mostrarMensajeLista('No tienes perfiles creados todavía. Usa el botón "Nuevo perfil" para crear el primero.');
                     return;
                 }
 
@@ -360,6 +470,7 @@
             }
         }
 
+        // Carga del catálogo de tipos de perfil
         async function cargarTiposPerfil() {
     const select = document.getElementById('tipoPerfilModal');
     if (!select) return;
@@ -378,20 +489,7 @@
             return;
         }
 
-        tipos.forEach((tipo) => {
-            const option = document.createElement('option');
-            option.value = tipo.idTipoPerfil;
-            option.textContent = tipo.nombre;
-            select.appendChild(option);
-        });
-
-    } catch (error) {
-        // ESTO TE DIRÁ EXACTAMENTE POR QUÉ FALLA EN AZURE
-        console.error('Error detallado al cargar tipos de perfil:', error);
-        alert("Error al cargar catálogo: " + error.message);
-    }
-}
-
+        // Guardar el perfil elegido en sessionStorage y navegar al formulario de registro de fármaco
         function seleccionarPerfil(perfil) {
             const perfilActivo = {
                 idPerfil: perfil.idPerfil,
@@ -402,14 +500,12 @@
             window.location.href = 'nuevo_farmaco.html';
         }
 
+        // --- Inicialización de la vista, avisos por URL y modal de creación ---
         document.addEventListener('DOMContentLoaded', async () => {
+            if (!verificarSesionActiva()) return;
             const usuario = obtenerUsuarioSesion();
 
-            if (!usuario) {
-                window.location.replace('login.html');
-                return;
-            }
-
+            // Si venimos redirigidos porque faltaba elegir un perfil, muestra el aviso 
             const params = new URLSearchParams(window.location.search);
             const solicitarSeleccion =
                 params.get('sinPerfil') === '1' ||
@@ -424,6 +520,7 @@
                     'Entendido'
                 );
 
+                // Limpia la query string sin recargar para que un refresh posterior no repita el aviso
                 const urlLimpia = window.location.pathname;
                 window.history.replaceState({}, document.title, urlLimpia);
             }
@@ -440,12 +537,14 @@
             const selectTipo = document.getElementById('tipoPerfilModal');
             const campoFecha = document.getElementById('fechaNacimientoModal');
 
+            // Limita la fecha máxima de nacimiento a "hoy" en hora local
             const ahora = new Date();
             campoFecha.max = new Date(ahora.getTime() - ahora.getTimezoneOffset() * 60000)
                 .toISOString().slice(0, 10);
 
             if (btnAbrir) {
                 btnAbrir.addEventListener('click', () => {
+                    // Si aún no hay perfiles y el usuario no registró cuenta como "cuidador", se sugiere "propio"
                     if (cantidadPerfiles === 0 && usuario.tipoUso !== 'cuidador') {
                         const propio = Array.from(selectTipo.options)
                             .find((o) => o.textContent.trim().toLowerCase() === 'propio');
@@ -460,6 +559,7 @@
             if (formNuevoPerfil) {
                 formNuevoPerfil.addEventListener('submit', async (e) => {
                     e.preventDefault();
+                    if (!verificarSesionActiva()) return;
 
                     const nombre = document.getElementById('nombrePacienteModal').value.trim();
 
@@ -500,8 +600,6 @@
                     }
                 });
             }
-
-            document.getElementById('btnCerrarSesionLateral')?.addEventListener('click', cerrarSesion);
         });
     </script>
 </body>

@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Caching.Memory;
 using System.Data;
+using System.Net;
+using System.Net.Mail;
+using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 
 [Route("api/[controller]")]
@@ -8,10 +12,12 @@ using System.Text.Json.Serialization;
 public class AuthController : ControllerBase
 {
     private readonly IConfiguration _configuration;
+    private readonly IMemoryCache _cache;
 
-    public AuthController(IConfiguration configuration)
+    public AuthController(IConfiguration configuration, IMemoryCache cache)
     {
         _configuration = configuration;
+        _cache = cache;
     }
 
     private string CadenaSql =>
@@ -32,9 +38,98 @@ public class AuthController : ControllerBase
     // CUENTA
     // ---------------------------------------------------------------
 
+    [HttpPost("enviar-codigo")]
+    public IActionResult EnviarCodigo([FromBody] EnviarCodigoDto modelo)
+    {
+        if (string.IsNullOrWhiteSpace(modelo?.Correo))
+        {
+            return BadRequest(new { success = false, message = "Ingresa un correo electrónico." });
+        }
+
+        string correo = modelo.Correo.Trim().ToLower();
+
+        try
+        {
+            using (SqlConnection conn = new SqlConnection(CadenaSql))
+            {
+                conn.Open();
+
+                using (SqlCommand cmdCorreo = new SqlCommand("SELECT 1 FROM dbo.USUARIO WHERE CORREO = @Correo", conn))
+                {
+                    cmdCorreo.Parameters.AddWithValue("@Correo", correo);
+                    if (cmdCorreo.ExecuteScalar() != null)
+                    {
+                        return BadRequest(new { success = false, message = "El correo ya está registrado." });
+                    }
+                }
+
+                string codigo8 = string.Empty;
+                bool existeEnBd = true;
+                int intentos = 0;
+
+                while (existeEnBd && intentos < 20)
+                {
+                    codigo8 = RandomNumberGenerator.GetInt32(10000000, 100000000).ToString("D8");
+
+                    using (SqlCommand cmdCodigo = new SqlCommand("SELECT 1 FROM dbo.USUARIO WHERE CODIGO_USUARIO = @Codigo", conn))
+                    {
+                        cmdCodigo.Parameters.AddWithValue("@Codigo", codigo8);
+                        existeEnBd = cmdCodigo.ExecuteScalar() != null;
+                    }
+
+                    intentos++;
+                }
+
+                if (existeEnBd)
+                {
+                    return StatusCode(500, new { success = false, message = "No se pudo generar un código único. Intenta de nuevo." });
+                }
+
+                _cache.Set($"codigo_reg_{correo}", codigo8, TimeSpan.FromMinutes(10));
+
+                var smtpSection = _configuration.GetSection("Smtp");
+                using (var client = new SmtpClient(smtpSection["Host"], int.Parse(smtpSection["Port"] ?? "587")))
+                {
+                    client.EnableSsl = bool.Parse(smtpSection["EnableSsl"] ?? "true");
+                    client.Credentials = new NetworkCredential(smtpSection["Usuario"], smtpSection["Password"]);
+
+                    var mail = new MailMessage
+                    {
+                        From = new MailAddress(smtpSection["Remitente"] ?? smtpSection["Usuario"]!, "CronoCare"),
+                        Subject = "Tu código de verificación de 8 dígitos",
+                        Body = $"Tu código para completar el registro es: {codigo8}\n\nEste código vence en 10 minutos.",
+                        IsBodyHtml = false
+                    };
+                    mail.To.Add(correo);
+                    client.Send(mail);
+                }
+
+                return Ok(new { success = true, message = "Código de 8 dígitos enviado a tu correo." });
+            }
+        }
+        catch (SqlException ex)
+        {
+            return RespuestaError(ex);
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new { success = false, message = "No se pudo enviar el correo. Revisa la configuración SMTP." });
+        }
+    }
+
     [HttpPost("registrar")]
     public IActionResult Registrar([FromBody] UsuarioRegistroDto modelo)
     {
+        string correo = (modelo?.Correo ?? string.Empty).Trim().ToLower();
+        string codigoIngresado = (modelo?.CodigoVerificacion ?? string.Empty).Trim();
+
+        if (!_cache.TryGetValue($"codigo_reg_{correo}", out string? codigoGuardado) ||
+            string.IsNullOrEmpty(codigoGuardado) ||
+            codigoGuardado != codigoIngresado)
+        {
+            return BadRequest(new { success = false, message = "El código de 8 dígitos es inválido o ha expirado." });
+        }
+
         try
         {
             using (SqlConnection conn = new SqlConnection(CadenaSql))
@@ -46,9 +141,12 @@ public class AuthController : ControllerBase
                     cmd.Parameters.AddWithValue("@Correo", modelo.Correo);
                     cmd.Parameters.AddWithValue("@Contrasena", modelo.Contrasena);
                     cmd.Parameters.AddWithValue("@TipoUso", modelo.TipoUso);
+                    cmd.Parameters.AddWithValue("@CodigoVerificacion", codigoIngresado);
 
                     conn.Open();
                     object resultado = cmd.ExecuteScalar();
+
+                    _cache.Remove($"codigo_reg_{correo}");
 
                     return Ok(new { success = true, message = "Usuario registrado correctamente", idUsuario = resultado });
                 }
@@ -187,7 +285,6 @@ public class AuthController : ControllerBase
     // PERFILES
     // ---------------------------------------------------------------
 
-    // Solo perfiles visibles que tienen al menos un medicamento activo (para el Index)
     [HttpGet("perfiles/{idUsuario}")]
     public IActionResult ListarPerfiles(long idUsuario)
     {
@@ -229,7 +326,6 @@ public class AuthController : ControllerBase
         }
     }
 
-    // Todos los perfiles visibles del usuario (para selector al registrar/asignar medicamentos)
     [HttpGet("perfiles/selector/{idUsuario}")]
     public IActionResult ListarPerfilesParaSelector(long idUsuario)
     {
@@ -753,6 +849,11 @@ public class AuthController : ControllerBase
     }
 }
 
+public class EnviarCodigoDto
+{
+    public string Correo { get; set; }
+}
+
 public class UsuarioRegistroDto
 {
     public string Nombre { get; set; }
@@ -760,6 +861,7 @@ public class UsuarioRegistroDto
     [JsonPropertyName("password")]
     public string Contrasena { get; set; }
     public string TipoUso { get; set; }
+    public string CodigoVerificacion { get; set; }
 }
 
 public class PerfilCreacionDto

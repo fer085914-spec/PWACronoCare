@@ -4,6 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CronoCare - Agenda de Hoy</title>
+    <!--
+      Corre antes de renderizar el <body> para evitar contenido protegido sino hay sesión activa
+    -->
+    <script>
+        (function () {
+            function tieneSesionValida() {
+                const guardado = localStorage.getItem('usuarioLogueado') || sessionStorage.getItem('empleados_usuario');
+                if (!guardado) return false;
+                try {
+                    const u = JSON.parse(guardado);
+                    // Acepta tanto 'id' como 'idUsuario' para mantener compatibilidad con la respuesta del backend
+                    const id = u && (u.id ?? u.idUsuario);
+                    return Boolean(id);
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            if (!tieneSesionValida()) {
+                document.documentElement.style.display = 'none';
+                window.location.replace('login.html');
+                return;
+            }
+
+            window.addEventListener('pageshow', (event) => {
+                if (event.persisted && !tieneSesionValida()) {
+                    document.documentElement.style.display = 'none';
+                    window.location.replace('login.html');
+                }
+            });
+        })();
+    </script>
+    <!-- Tailwind CSS y configuración de colores propios de CronoCare -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -21,70 +54,123 @@
     </script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col">
+<body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col text-crono-dark">
 
+    <!-- Menú lateral deslizable -->
     <div id="sidebar" class="fixed inset-y-0 right-0 w-64 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
         <div class="p-5 bg-crono-blue text-white flex justify-between items-center">
-            <span class="font-bold text-lg">Menú CronoCare</span>
+            <span class="font-bold text-base">Menú CronoCare</span>
             <button id="closeSidebar" class="text-white hover:text-gray-200">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
-        <div class="flex flex-col p-6 gap-6">
+        <div class="flex flex-col p-6 gap-5 text-sm">
             <a href="index.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">🏠</span> Inicio
+                <span class="text-lg">🏠</span> Inicio
             </a>
+            <!-- Vista activa en el menú -->
             <a href="hoy.html" class="text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">📅</span> Agenda de Hoy
+                <span class="text-lg">📅</span> Agenda de Hoy
+            </a>
+            <a href="perfiles.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-lg">👥</span> Perfiles
             </a>
             <a href="nuevo_farmaco.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">➕</span> Nuevo Registro
+                <span class="text-lg">➕</span> Nuevo Registro
             </a>
             <a href="listo.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">✅</span> Terminados
+                <span class="text-lg">✅</span> Terminados
             </a>
             <hr>
             <button id="btnCerrarSesionLateral" class="text-left text-red-500 hover:text-red-700 font-semibold flex items-center gap-2">
-                <span class="text-xl">🚪</span> Salir
+                <span class="text-lg">🚪</span> Salir
             </button>
         </div>
     </div>
 
+    <!-- Fondo oscuro detrás del menú lateral -->
     <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40 transition-opacity"></div>
 
-    <div class="bg-crono-blue text-white p-4 md:px-8 md:py-5 shadow-md flex justify-between items-center z-10 w-full">
-        <a href="index.html" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Ir al inicio">
-            <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm rounded-full">
-                <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
-            </div>
-            <h1 class="text-2xl md:text-3xl font-bold tracking-wide">CronoCare</h1>
-        </a>
-        <button id="openSidebar" class="hidden md:block text-white hover:text-crono-light transition-colors">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-        </button>
-    </div>
+    <div class="w-full min-h-screen relative flex flex-col md:flex-row flex-1">
 
-    <div class="flex-1 pb-24 md:pb-8 w-full max-w-3xl mx-auto flex flex-col">
-        <div class="w-full">
-            <div class="p-6 md:px-10 md:pt-10 pb-4">
-                <h2 class="text-xl md:text-2xl font-bold text-black">¡Hola <span id="nombreUsuario">_____</span>!</h2>
-                <p class="text-gray-800 mt-2 md:text-lg font-semibold">Controla tus tomas de hoy</p>
+        <!-- Barra lateral fija para escritorio (visible a partir de md) -->
+        <aside class="hidden md:flex md:w-72 md:shrink-0 md:flex-col md:justify-between bg-[#2B7A96] text-white md:min-h-screen md:sticky md:top-0 shadow-md z-20">
+            <div class="p-7 flex flex-col">
+                <a href="index.html" class="flex items-center gap-3.5 mb-9 pb-4 border-b border-white/15 hover:opacity-95 transition-opacity" title="Ir al inicio">
+                    <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-white/30">
+                        <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-contain">
+                    </div>
+                    <span class="text-2xl font-bold tracking-wide text-white">CronoCare</span>
+                </a>
+
+                <nav class="flex flex-col gap-2.5 text-base">
+                    <a href="index.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Inicio</span>
+                    </a>
+                    <!-- Indicador activo en navegación de escritorio -->
+                    <a href="hoy.html" class="bg-white/20 border border-white/25 text-white font-semibold px-4 py-3 rounded-full flex items-center gap-3 shadow-2xs transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-white shrink-0"></span>
+                        <span>Hoy</span>
+                    </a>
+                    <a href="perfiles.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Perfiles</span>
+                    </a>
+                    <a href="listo.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Terminados</span>
+                    </a>
+                    <button type="button" id="btnCerrarSesionPc" class="text-left text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors mt-1">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Salir</span>
+                    </button>
+                </nav>
             </div>
 
-            <div class="px-6 md:px-10 flex flex-col gap-5" id="contenedorTomas">
+            <!-- Acceso para agregar fármaco seleccionando perfil -->
+            <div class="p-7">
+                <a href="perfiles.html" class="w-full bg-[#1F657D] hover:bg-[#195367] text-white font-semibold py-3 px-4 rounded-full flex items-center justify-center gap-2.5 shadow-sm transition-colors text-sm">
+                    <span class="text-xl leading-none font-bold">+</span>
+                    <span>Nuevo fármaco</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Contenido principal de la agenda -->
+        <div class="flex-1 flex flex-col min-w-0">
+
+            <div class="md:hidden bg-[#2B7A96] text-white p-4 shadow-md flex justify-between items-center z-10 w-full">
+                <a href="index.html" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Ir al inicio">
+                    <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm rounded-full">
+                        <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
+                    </div>
+                    <h1 class="text-2xl font-bold tracking-wide">CronoCare</h1>
+                </a>
             </div>
 
-            <div id="mensajeVacio" class="hidden text-center mt-12 px-6">
-                <span class="text-5xl">🎉</span>
-                <h3 class="text-xl font-bold text-gray-700 mt-4">¡Todo listo por hoy!</h3>
-                <p class="text-gray-500 mt-2">Has despachado todas tus tomas programadas.</p>
+            <div class="flex-1 pb-24 md:pb-12 w-full max-w-3xl md:max-w-5xl mx-auto flex flex-col">
+                <div class="w-full">
+                    <!-- Saludo personalizado con el nombre del usuario autenticado -->
+                    <div class="p-6 md:px-10 md:pt-9 pb-5">
+                        <h2 class="text-xl md:text-2xl font-bold text-crono-dark">¡Hola <span id="nombreUsuario">_____</span>!</h2>
+                        <p class="text-gray-800 md:text-gray-700 mt-1.5 md:text-base font-medium md:font-semibold">Controla tus tomas de hoy</p>
+                    </div>
+
+                    <!-- Actualizacion dinámica de las tarjetas de tomas pendientes de hoy -->
+                    <div class="px-6 md:px-10 flex flex-col gap-5" id="contenedorTomas">
+                    </div>
+
+                    <!-- Estado vacío: se muestra cuando no hay tomas pendientes o ya se atendieron todas -->
+                    <div id="mensajeVacio" class="hidden text-center mt-12 px-6">
+                        <span class="text-5xl">🎉</span>
+                        <h3 class="text-lg md:text-xl font-bold text-gray-700 mt-4">¡Todo listo por hoy!</h3>
+                        <p class="text-sm text-gray-500 mt-2">Has despachado todas tus tomas programadas.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-
-    <a href="perfiles.html" class="hidden md:flex fixed bottom-10 right-10 bg-crono-teal text-white w-16 h-16 rounded-full items-center justify-center text-5xl shadow-2xl hover:scale-110 hover:bg-crono-blue transition-all z-40 pb-2">
-        +
-    </a>
 
     <div class="md:hidden fixed bottom-0 w-full h-16 bg-white border-t border-gray-200 flex justify-between items-center px-2 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-30">
         <a href="index.html" class="flex flex-col items-center text-gray-400 hover:text-crono-teal w-1/5 transition-colors">
@@ -109,6 +195,7 @@
     </div>
 
     <script>
+        // --- Control del menú lateral ---
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebarOverlay');
         const openBtn = document.getElementById('openSidebar');
@@ -124,15 +211,7 @@
         if (closeBtn) closeBtn.addEventListener('click', toggleMenu);
         if (overlay) overlay.addEventListener('click', toggleMenu);
 
-        function cerrarSesion() {
-            localStorage.removeItem("usuarioLogueado");
-            sessionStorage.removeItem("empleados_usuario");
-            sessionStorage.removeItem("perfilSeleccionado");
-            window.location.replace("login.html");
-        }
-        document.getElementById('btnCerrarSesionLateral')?.addEventListener('click', cerrarSesion);
-        document.getElementById('btnCerrarSesion')?.addEventListener('click', cerrarSesion);
-
+        // Extrae el id y nombre del usuario activo desde localStorage o sessionStorage
         function obtenerUsuarioSesion() {
             const guardado = localStorage.getItem("usuarioLogueado") || sessionStorage.getItem("empleados_usuario");
             if (!guardado) return null;
@@ -145,13 +224,43 @@
             }
         }
 
-        document.addEventListener("DOMContentLoaded", async () => {
-            const usuario = obtenerUsuarioSesion();
-            if (!usuario) {
+        // Comprobar que hay sesión válida antes de operar
+        function verificarSesionActiva() {
+            if (!obtenerUsuarioSesion()) {
+                document.documentElement.style.display = 'none';
                 window.location.replace("login.html");
-                return;
+                return false;
             }
+            document.documentElement.style.display = '';
+            return true;
+        }
 
+        // Borra credenciales y selección de perfil en ambos storages y redirige sin historial
+        function cerrarSesion() {
+            document.documentElement.style.display = 'none';
+            localStorage.removeItem("usuarioLogueado");
+            localStorage.removeItem("perfilSeleccionado");
+            sessionStorage.removeItem("empleados_usuario");
+            sessionStorage.removeItem("perfilSeleccionado");
+            window.location.replace("login.html");
+        }
+        document.getElementById('btnCerrarSesionLateral')?.addEventListener('click', cerrarSesion);
+        document.getElementById('btnCerrarSesionPc')?.addEventListener('click', cerrarSesion);
+        document.getElementById('btnCerrarSesion')?.addEventListener('click', cerrarSesion);
+
+        // Revalidar la sesión
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                verificarSesionActiva();
+            }
+        });
+
+        // --- Inicialización de la vista ---
+        document.addEventListener("DOMContentLoaded", async () => {
+            if (!verificarSesionActiva()) return;
+            const usuario = obtenerUsuarioSesion();
+
+            // Mostrar el nombre del usuario en el saludo principal
             const spanNombre = document.getElementById("nombreUsuario");
             if (spanNombre && usuario.nombre) {
                 spanNombre.textContent = usuario.nombre;
@@ -160,6 +269,7 @@
             await cargarAgendaHoy(usuario.id);
         });
 
+        // Consultar las tomas del día y renderizar solo las que siguen pendientes o toca tomar
         async function cargarAgendaHoy(idUsuario) {
             const contenedor = document.getElementById('contenedorTomas');
             const mensajeVacio = document.getElementById('mensajeVacio');
@@ -172,6 +282,7 @@
                 contenedor.innerHTML = "";
                 mensajeVacio.classList.add('hidden');
 
+                // Filtrar las tomas que aún no han sido marcadas como 'Tomada' u 'Omitida'
                 const tomasPendientes = tomas.filter(t => t.estadoToma === "Pendiente" || t.estadoToma === "Toca");
 
                 if (tomasPendientes.length === 0) {
@@ -180,41 +291,42 @@
                 }
 
                 tomasPendientes.forEach(toma => {
+                    // Formatear la fecha/hora programada en formato de 2 dígitos (hora y minutos)
                     const horaFormateada = new Date(toma.fechaHoraProgramada).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                     const tarjetaHTML = `
-                                <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 relative transition-all duration-500 ease-in-out" id="toma-${toma.idToma}">
-                                    <!-- PERFIL EN UNA SOLA LÍNEA -->
-                                    <div class="mb-3 pb-2 border-b border-gray-100 flex items-center justify-between text-xs md:text-sm text-gray-500">
-                                        <span>👤 <strong class="text-crono-dark">${toma.perfil.nombre}</strong> (${toma.perfil.relacion})</span>
-                                        <span>Nacimiento: ${toma.perfil.fechaNacimiento}</span>
-                                    </div>
+                                            <div class="bg-white rounded-2xl md:rounded-3xl p-5 md:p-6 shadow-sm border border-crono-teal/40 md:border-gray-100 relative transition-all duration-500 ease-in-out" id="toma-${toma.idToma}">
+                                                <!-- Datos del perfil asociado a la toma -->
+                                                <div class="mb-3.5 pb-2.5 border-b border-gray-200 md:border-gray-100 flex items-center justify-between text-xs md:text-sm text-gray-500">
+                                                    <span>${toma.perfil.nombre} (${toma.perfil.relacion})</span>
+                                                    <span>Fecha nacimiento: ${toma.perfil.fechaNacimiento}</span>
+                                                </div>
 
-                                    <div class="flex items-start gap-4">
-                                        <div class="w-14 h-14 bg-crono-light rounded-full flex items-center justify-center shrink-0">
-                                            <svg class="w-8 h-8 text-crono-teal" fill="currentColor" viewBox="0 0 24 24">
-                                                <path d="M17.34 6.66a5.5 5.5 0 00-7.78 0L6.66 9.56a5.5 5.5 0 000 7.78 5.5 5.5 0 007.78 0l2.9-2.9a5.5 5.5 0 000-7.78zm-4.24 6.36l-2.12-2.12m5.66-2.12L13.1 5.24"></path>
-                                            </svg>
-                                        </div>
-                                        <div class="flex-1 pr-20">
-                                            <h3 class="font-bold text-crono-dark text-lg md:text-xl leading-tight">${toma.nombreMedicamento}</h3>
-                                            <p class="text-sm md:text-base text-gray-500 mt-1">Hora de la toma: <span class="font-semibold text-crono-blue">${horaFormateada} hrs</span></p>
-                                        </div>
-                                    </div>
+                                                <div class="flex items-start gap-4">
+                                                    <div class="w-12 h-12 md:w-14 md:h-14 bg-crono-light rounded-full flex items-center justify-center shrink-0">
+                                                        <svg class="w-6 h-6 md:w-7 md:h-7 text-crono-teal" fill="currentColor" viewBox="0 0 24 24">
+                                                            <path d="M17.34 6.66a5.5 5.5 0 00-7.78 0L6.66 9.56a5.5 5.5 0 000 7.78 5.5 5.5 0 007.78 0l2.9-2.9a5.5 5.5 0 000-7.78zm-4.24 6.36l-2.12-2.12m5.66-2.12L13.1 5.24"></path>
+                                                        </svg>
+                                                    </div>
+                                                    <div class="flex-1 pr-20">
+                                                        <h3 class="font-bold text-crono-dark text-sm md:text-base leading-tight uppercase">${toma.nombreMedicamento}</h3>
+                                                        <p class="text-xs md:text-sm text-gray-600 mt-1">Hora de la toma: <span class="font-semibold text-crono-blue">${horaFormateada} hrs</span></p>
+                                                    </div>
+                                                </div>
 
-                                    <!-- Botones de Confirmación (Tacha y Palomita) -->
-                                    <div class="absolute bottom-4 right-4 flex gap-3">
-                                        <!-- Tacha Roja (Omitida) -->
-                                        <button type="button" onclick="actualizarEstadoToma(${toma.idToma}, 'Omitida')" class="w-8 h-8 rounded-full border-2 border-red-500 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors" title="No tomada / Omitida">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                        </button>
-                                        <!-- Palomita Verde (Tomada) -->
-                                        <button type="button" onclick="actualizarEstadoToma(${toma.idToma}, 'Tomada')" class="w-8 h-8 rounded-full border-2 border-green-500 text-green-500 flex items-center justify-center hover:bg-green-500 hover:text-white transition-colors" title="Tomada">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
-                                        </button>
-                                    </div>
-                                </div>
-                            `;
+                                                <!-- Botones de acción rápida: marcar como 'Omitida' (tacha) o 'Tomada' (palomita) -->
+                                                <div class="absolute bottom-5 right-5 flex gap-3">
+                                                    <!-- Tacha roja: registra la toma como omitida -->
+                                                    <button type="button" onclick="actualizarEstadoToma(${toma.idToma}, 'Omitida')" class="w-8 h-8 rounded-full border-2 border-red-500 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors" title="No tomada / Omitida">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                    </button>
+                                                    <!-- Palomita verde: registra la toma como completada -->
+                                                    <button type="button" onclick="actualizarEstadoToma(${toma.idToma}, 'Tomada')" class="w-8 h-8 rounded-full border-2 border-green-500 text-green-500 flex items-center justify-center hover:bg-green-500 hover:text-white transition-colors" title="Tomada">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        `;
                     contenedor.innerHTML += tarjetaHTML;
                 });
 
@@ -224,12 +336,10 @@
             }
         }
 
+        // Envíar el nuevo estado ('Tomada' u 'Omitida') y retirar la tarjeta con animación
         async function actualizarEstadoToma(idToma, nuevoEstado) {
+            if (!verificarSesionActiva()) return;
             const usuario = obtenerUsuarioSesion();
-            if (!usuario) {
-                window.location.replace("login.html");
-                return;
-            }
 
             const tarjeta = document.getElementById(`toma-${idToma}`);
 
@@ -247,10 +357,12 @@
                 if (!response.ok) throw new Error("No se pudo actualizar el estado");
 
                 if (tarjeta) {
+                    // Desvaner y reducir la tarjeta antes de quitarla
                     tarjeta.style.opacity = '0';
                     tarjeta.style.transform = 'scale(0.95)';
                     setTimeout(() => {
                         tarjeta.remove();
+                        //  mostramos el mensaje de agenda completada cuando ya no queden tomas
                         const contenedor = document.getElementById('contenedorTomas');
                         if (contenedor && contenedor.children.length === 0) {
                             document.getElementById('mensajeVacio').classList.remove('hidden');
