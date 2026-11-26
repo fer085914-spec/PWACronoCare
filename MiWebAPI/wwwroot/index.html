@@ -4,6 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CronoCare - Menú Principal</title>
+    <!--
+        Corre antes de renderizar el <body> para evitar contenido protegido sino hay sesión activa
+    -->
+    <script>
+        (function () {
+            const CLAVE_SESION = 'usuarioLogueado';
+
+            function tieneSesionValida() {
+                const guardado = localStorage.getItem(CLAVE_SESION);
+                if (!guardado) return false;
+                try {
+                    const u = JSON.parse(guardado);
+                    // Acepta tanto 'id' como 'idUsuario' según el formato devuelto por la API
+                    const id = u && (u.id ?? u.idUsuario);
+                    return Boolean(id);
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            if (!tieneSesionValida()) {
+                document.documentElement.style.display = 'none';
+                window.location.replace('login.html');
+                return;
+            }
+
+            window.addEventListener('pageshow', (event) => {
+                if (event.persisted && !tieneSesionValida()) {
+                    document.documentElement.style.display = 'none';
+                    window.location.replace('login.html');
+                }
+            });
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -22,71 +56,114 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="min-h-screen bg-crono-light font-sans overflow-x-hidden">
+<body class="min-h-screen bg-crono-light font-sans overflow-x-hidden text-crono-dark">
 
+    <!-- Menú lateral deslizable -->
     <div id="sidebar" class="fixed inset-y-0 right-0 w-64 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
         <div class="p-5 bg-crono-blue text-white flex justify-between items-center">
-            <span class="font-bold text-lg">Menú CronoCare</span>
+            <span class="font-bold text-base">Menú CronoCare</span>
             <button id="closeSidebar" class="text-white hover:text-gray-200">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
-        <div class="flex flex-col p-6 gap-6">
+        <div class="flex flex-col p-6 gap-5 text-sm">
             <a href="index.html" class="text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">🏠</span> Inicio
+                <span class="text-lg">🏠</span> Inicio
             </a>
             <a href="hoy.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">📅</span> Agenda de Hoy
+                <span class="text-lg">📅</span> Agenda de Hoy
             </a>
-            <a href="nuevo_farmaco.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">➕</span> Nuevo Registro
+            <a href="perfiles.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-lg">👥</span> Perfiles
             </a>
             <a href="listo.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">✅</span> Terminados
+                <span class="text-lg">✅</span> Terminados
             </a>
             <hr>
             <button id="btnCerrarSesionLateral" class="text-left text-red-500 hover:text-red-700 font-semibold flex items-center gap-2">
-                <span class="text-xl">🚪</span> Salir
+                <span class="text-lg">🚪</span> Salir
             </button>
         </div>
     </div>
 
+    <!-- Fondo del menú lateral -->
     <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40 transition-opacity"></div>
 
-    <div class="w-full min-h-screen relative flex flex-col">
+    <div class="w-full min-h-screen relative flex flex-col md:flex-row">
 
-        <div class="bg-crono-blue text-white p-4 md:px-8 md:py-5 shadow-md flex justify-between items-center z-10">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm">
-                    <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
+        <aside class="hidden md:flex md:w-72 md:shrink-0 md:flex-col md:justify-between bg-[#2B7A96] text-white md:min-h-screen md:sticky md:top-0 shadow-md z-20">
+            <div class="p-7 flex flex-col">
+                <div class="flex items-center gap-3.5 mb-9 pb-4 border-b border-white/15">
+                    <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-white/30">
+                        <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-contain">
+                    </div>
+                    <span class="text-2xl font-bold tracking-wide text-white">CronoCare</span>
                 </div>
-                <h1 class="text-2xl md:text-3xl font-bold tracking-wide">CronoCare</h1>
+
+                <nav class="flex flex-col gap-2.5 text-base">
+                    <a href="index.html" aria-current="page" class="bg-white/25 text-white font-bold px-4 py-3 rounded-full flex items-center gap-3 shadow-xs ring-1 ring-white/35 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-white shrink-0"></span>
+                        <span>Inicio</span>
+                    </a>
+                    <a href="hoy.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Hoy</span>
+                    </a>
+                    <a href="perfiles.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Perfiles</span>
+                    </a>
+                    <a href="listo.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Terminados</span>
+                    </a>
+                    <button type="button" id="btnCerrarSesionPc" class="text-left text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors mt-1">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Salir</span>
+                    </button>
+                </nav>
             </div>
-            <button id="openSidebar" class="hidden md:block text-white hover:text-crono-light transition-colors">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-            </button>
-        </div>
 
-        <div class="flex-1 pb-24 md:pb-8 w-full max-w-3xl mx-auto flex flex-col px-4 md:px-0">
+            <div class="p-7">
+                <a href="perfiles.html" class="w-full bg-[#1F657D] hover:bg-[#195367] text-white font-semibold py-3 px-4 rounded-full flex items-center justify-center gap-2.5 shadow-sm transition-colors text-sm">
+                    <span class="text-xl leading-none font-bold">+</span>
+                    <span>Nuevo fármaco</span>
+                </a>
+            </div>
+        </aside>
 
-            <div class="w-full">
-                <div class="p-6 md:px-10 md:pt-10 pb-4">
-                    <h2 class="text-xl md:text-2xl font-bold text-black">¡Hola <span id="nombreUsuario">_____</span>!</h2>
-                    <p class="text-gray-800 mt-2 md:text-lg font-semibold">Esquemas médicos activos:</p>
+        <!-- Área principal del dashboard -->
+        <div class="flex-1 flex flex-col min-w-0">
+
+            <div class="md:hidden bg-[#2B7A96] text-white p-4 shadow-md flex justify-between items-center z-10">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm">
+                        <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
+                    </div>
+                    <h1 class="text-2xl font-bold tracking-wide">CronoCare</h1>
                 </div>
+            </div>
 
-                <div id="contenedorPerfilesIndex" class="px-6 md:px-10 flex flex-col gap-4">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm text-center">
-                        <p class="text-gray-500">Cargando perfiles y esquemas...</p>
+            <div class="flex-1 pb-24 md:pb-10 w-full max-w-4xl mx-auto flex flex-col px-4 md:px-10">
+
+                <div class="w-full">
+                    <div class="p-6 md:px-0 md:pt-10 pb-4">
+                        <div class="inline-block md:bg-[#9FD0DC] md:px-6 md:py-2.5 md:rounded-full">
+                            <h2 class="text-xl md:text-2xl font-bold text-crono-dark">¡Hola <span id="nombreUsuario">_____</span>!</h2>
+                        </div>
+                        <p class="text-crono-dark mt-4 text-sm md:text-base font-semibold">Esquema médico activo:</p>
+                    </div>
+
+                    <!-- Contenedor donde se muestran los medicamentos por perfil con medicación activa -->
+                    <div id="contenedorPerfilesIndex" class="px-6 md:px-0 flex flex-col gap-4">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm text-center">
+                            <p class="text-gray-500 text-sm">Cargando perfiles y esquemas...</p>
+                        </div>
                     </div>
                 </div>
+
             </div>
-
         </div>
-
-        <a href="perfiles.html" title="Nuevo Registro" class="hidden md:flex fixed bottom-10 right-10 bg-crono-teal text-white w-16 h-16 rounded-full items-center justify-center text-5xl shadow-2xl hover:scale-110 hover:bg-crono-blue transition-all z-40 pb-2">
-            +
-        </a>
 
         <div class="md:hidden fixed bottom-0 w-full h-16 bg-white border-t border-gray-200 flex justify-between items-center px-2 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-30">
             <a href="index.html" class="flex flex-col items-center text-crono-teal w-1/5 transition-colors">
@@ -142,13 +219,30 @@
             }
         }
 
+        // Revalida que haya sesión activa
+        function verificarSesionActiva() {
+            if (!obtenerUsuarioSesion()) {
+                document.documentElement.style.display = 'none';
+                window.location.replace('login.html');
+                return false;
+            }
+            document.documentElement.style.display = '';
+            return true;
+        }
+
+        // Limpia sesión y claves de ambos storages
         function cerrarSesion() {
+            document.documentElement.style.display = 'none';
             localStorage.removeItem(CLAVE_SESION);
+            localStorage.removeItem('perfilSeleccionado');
             sessionStorage.removeItem('perfilSeleccionado');
+            sessionStorage.removeItem('empleados_usuario');
+            sessionStorage.removeItem('cronocare_usuario');
             window.location.replace('login.html');
         }
 
         document.getElementById('btnCerrarSesionLateral')?.addEventListener('click', cerrarSesion);
+        document.getElementById('btnCerrarSesionPc')?.addEventListener('click', cerrarSesion);
         document.getElementById('btnCerrarSesion')?.addEventListener('click', cerrarSesion);
 
         async function llamarApi(url, opciones) {
@@ -161,12 +255,16 @@
             return datos;
         }
 
-        document.addEventListener("DOMContentLoaded", async () => {
+        // Inicia el saludo y carga los perfiles con medicamentos activos
+        async function inicializarVistaIndex() {
             const usuario = obtenerUsuarioSesion();
             if (!usuario) {
+                document.documentElement.style.display = 'none';
                 window.location.replace("login.html");
                 return;
             }
+
+            document.documentElement.style.display = '';
 
             const spanNombre = document.getElementById("nombreUsuario");
             if (spanNombre && usuario.nombre) {
@@ -174,134 +272,174 @@
             }
 
             await cargarSeccionesPerfiles(usuario.id);
+        }
+
+        document.addEventListener("DOMContentLoaded", inicializarVistaIndex);
+
+        window.addEventListener("pageshow", (event) => {
+            if (!verificarSesionActiva()) return;
+            if (event.persisted) {
+                inicializarVistaIndex();
+            }
         });
 
+        //  tarjeta de un medicamento activo con enlace al detalle y acción para ocultarlo
+        function renderizarTarjetaMedicamento(med) {
+            const idMed = med.idMedicamento ?? med.ID_MEDICAMENTO ?? med.id;
+            const nombreMed = med.nombreMedicamento ?? med.NOMBRE_MEDICAMENTO ?? 'Medicamento';
+            const proximaTomaTexto = med.proximaToma
+                ? new Date(med.proximaToma).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : 'Pendiente';
+
+            const tarjeta = document.createElement("div");
+            tarjeta.className = "bg-white rounded-2xl p-3.5 shadow-xs border border-gray-200 hover:border-crono-teal hover:shadow-sm transition-all group flex items-center justify-between gap-3";
+            tarjeta.innerHTML = `
+                            <a href="detalle_farmaco.html?id=${idMed}" class="flex items-center gap-3 flex-1 min-w-0">
+                                <div class="w-10 h-10 bg-crono-light rounded-full flex items-center justify-center shrink-0 group-hover:bg-crono-teal transition-colors">
+                                    <svg class="w-5 h-5 text-crono-blue group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M17.34 6.66a5.5 5.5 0 00-7.78 0L6.66 9.56a5.5 5.5 0 000 7.78 5.5 5.5 0 007.78 0l2.9-2.9a5.5 5.5 0 000-7.78zm-4.24 6.36l-2.12-2.12m5.66-2.12L13.1 5.24"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-bold text-crono-dark text-sm md:text-base truncate group-hover:text-crono-teal transition-colors">${nombreMed}</h4>
+                                    <p class="text-xs text-gray-500 mt-0.5">Vía: <span class="font-medium">${med.viaAdministracion || 'General'}</span> · Próxima toma: <span class="font-semibold text-crono-blue">${proximaTomaTexto}</span></p>
+                                </div>
+                            </a>
+                            <button type="button" class="btn-ocultar-med text-gray-400 hover:text-red-500 transition-colors p-2 shrink-0" title="Eliminar medicamento">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2.000 2.000 0 0116.138 21H7.862a2.000 2.000 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        `;
+
+            tarjeta.querySelector(".btn-ocultar-med").addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!idMed) return;
+                confirmarOcultarMedicamento(idMed, nombreMed);
+            });
+
+            return tarjeta;
+        }
+
+        // Consultar perfiles del usuario y filtrar solo los que tengan al menos un fármaco activo
         async function cargarSeccionesPerfiles(idUsuario) {
             const contenedor = document.getElementById("contenedorPerfilesIndex");
 
             try {
-                // sp_Perfil_ListarPorUsuario ya devuelve solo perfiles visibles con medicamentos activos
                 const perfiles = await llamarApi(`${API}/perfiles/${idUsuario}`);
 
                 if (!perfiles || perfiles.length === 0) {
                     contenedor.innerHTML = `
-                            <div class="bg-white p-6 rounded-2xl shadow-sm text-center">
-                                <p class="text-gray-500 mb-2">No tienes esquemas médicos activos por el momento.</p>
-                                <a href="perfiles.html" class="text-crono-teal font-bold hover:underline text-sm">Ver o gestionar perfiles aquí</a>
-                            </div>`;
+                                    <div class="bg-white p-6 rounded-2xl shadow-sm text-center">
+                                        <p class="text-gray-500 text-sm mb-2">No tienes medicación activa por el momento.</p>
+                                        <a href="perfiles.html" class="text-crono-teal font-bold hover:underline text-sm">Ver o gestionar perfiles aquí</a>
+                                    </div>`;
+                    return;
+                }
+
+                // mostrar únicamente los perfiles que cuenten con medicamentos activos
+                const perfilesConActivos = [];
+
+                for (const perfil of perfiles) {
+                    const idPerfil = perfil.idPerfil ?? perfil.ID_PERFIL ?? perfil.id;
+                    const nombrePerfil = perfil.nombre ?? perfil.NOMBRE ?? 'Perfil';
+
+                    try {
+                        const medicamentos = await llamarApi(`${API}/medicamentos/activos/${idUsuario}/${idPerfil}`);
+                        if (medicamentos && medicamentos.length > 0) {
+                            perfilesConActivos.push({
+                                idPerfil,
+                                nombrePerfil,
+                                medicamentos
+                            });
+                        }
+                    } catch (errMed) {
+                        console.error(`Error cargando medicamentos del perfil ${idPerfil}:`, errMed);
+                    }
+                }
+
+                // Si existen perfiles pero ninguno tiene tratamientos activos, se muestra el estado vacío
+                if (perfilesConActivos.length === 0) {
+                    contenedor.innerHTML = `
+                                    <div class="bg-white p-6 rounded-2xl shadow-sm text-center">
+                                        <p class="text-gray-600 text-sm font-medium mb-2">No tienes medicación activa en este momento.</p>
+                                        <a href="perfiles.html" class="text-crono-teal font-bold hover:underline text-sm">Registrar o ver perfiles aquí</a>
+                                    </div>`;
                     return;
                 }
 
                 contenedor.innerHTML = "";
 
-                for (const perfil of perfiles) {
-                    const idPerfil = perfil.idPerfil;
-                    const nombrePerfil = perfil.nombre;
+                // muestra un desplegable por cada perfil con medicación activa
+                for (const item of perfilesConActivos) {
+                    const { idPerfil, nombrePerfil, medicamentos } = item;
+                    const total = medicamentos.length;
 
-                    const cardHTML = `
-                            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                                <button type="button" onclick="toggleAcordeon('perfil-${idPerfil}')" class="w-full p-5 bg-white flex justify-between items-center hover:bg-crono-light/30 transition-colors">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 bg-crono-light text-crono-teal rounded-full flex items-center justify-center font-bold text-lg">
-                                            👤
+                    const card = document.createElement("div");
+                    card.className = "bg-white rounded-3xl md:rounded-full shadow-sm border border-[#287F89]/50 overflow-hidden transition-all";
+                    card.id = `acordeon-wrapper-${idPerfil}`;
+
+                    card.innerHTML = `
+                                    <button type="button" onclick="toggleAcordeon('perfil-${idPerfil}', 'acordeon-wrapper-${idPerfil}')" class="w-full px-5 py-4 bg-white flex justify-between items-center hover:bg-crono-light/30 transition-colors">
+                                        <div class="flex items-center gap-3.5">
+                                            <div class="w-11 h-11 bg-[#DCEEEF] text-crono-blue rounded-full flex items-center justify-center shrink-0">
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                                                </svg>
+                                            </div>
+                                            <div class="text-left">
+                                                <h3 class="font-bold text-crono-dark text-sm md:text-base leading-tight">${nombrePerfil}</h3>
+                                                <p class="text-xs text-gray-500 mt-0.5" id="contador-${idPerfil}">${total} ${total === 1 ? 'Medicamento activo' : 'Medicamentos activos'}</p>
+                                            </div>
                                         </div>
-                                        <div class="text-left">
-                                            <h3 class="font-bold text-crono-dark text-base md:text-lg">${nombrePerfil}</h3>
-                                            <p class="text-xs text-gray-500" id="contador-${idPerfil}">Cargando medicamentos...</p>
-                                        </div>
+                                        <svg id="icon-perfil-${idPerfil}" class="w-5 h-5 text-crono-teal transform transition-transform duration-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </button>
+
+                                    <div id="perfil-${idPerfil}" class="hidden flex-col gap-2.5 px-5 pb-5 pt-3 bg-gray-50/80 border-t border-gray-100 rounded-b-3xl">
                                     </div>
-                                    <svg id="icon-perfil-${idPerfil}" class="w-6 h-6 text-crono-teal transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                    </svg>
-                                </button>
+                                `;
 
-                                <div id="perfil-${idPerfil}" class="hidden flex flex-col gap-3 p-4 bg-gray-50 border-t border-gray-100">
-                                </div>
-                            </div>
-                        `;
-                    contenedor.innerHTML += cardHTML;
+                    const contenedorLista = card.querySelector(`#perfil-${idPerfil}`);
+                    medicamentos.forEach((med) => {
+                        contenedorLista.appendChild(renderizarTarjetaMedicamento(med));
+                    });
 
-                    await cargarMedicamentosPorPerfil(idUsuario, idPerfil);
+                    contenedor.appendChild(card);
                 }
 
             } catch (error) {
                 console.error("Error al cargar perfiles para el dashboard:", error);
-                contenedor.innerHTML = `<div class="bg-white p-6 rounded-2xl shadow-sm text-center"><p class="text-red-500">Error al cargar la información.</p></div>`;
+                contenedor.innerHTML = `<div class="bg-white p-6 rounded-2xl shadow-sm text-center"><p class="text-red-500 text-sm">Error al cargar la información.</p></div>`;
             }
         }
 
-        async function cargarMedicamentosPorPerfil(idUsuario, idPerfil) {
-            const contenedorLista = document.getElementById(`perfil-${idPerfil}`);
-            const contadorLabel = document.getElementById(`contador-${idPerfil}`);
-
-            try {
-                const medicamentos = await llamarApi(`${API}/medicamentos/activos/${idUsuario}/${idPerfil}`);
-
-                const total = medicamentos ? medicamentos.length : 0;
-                contadorLabel.textContent = `${total} ${total === 1 ? 'medicamento activo' : 'medicamentos activos'}`;
-                contenedorLista.innerHTML = "";
-
-                if (!medicamentos || total === 0) {
-                    contenedorLista.innerHTML = `<p class="text-gray-400 text-sm italic text-center py-2">No hay esquemas médicos activos para este perfil.</p>`;
-                    return;
-                }
-
-                medicamentos.forEach(med => {
-                    const idMed = med.idMedicamento ?? med.ID_MEDICAMENTO ?? med.id;
-                    const nombreMed = med.nombreMedicamento ?? med.NOMBRE_MEDICAMENTO ?? 'Medicamento';
-                    const proximaTomaTexto = med.proximaToma
-                        ? new Date(med.proximaToma).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                        : 'Pendiente';
-
-                    const tarjeta = document.createElement("div");
-                    tarjeta.className = "bg-white rounded-xl p-4 shadow-xs border border-gray-200 relative hover:shadow-md transition-shadow group flex items-start gap-3";
-                    tarjeta.innerHTML = `
-                            <a href="detalle_farmaco.html?id=${idMed}" class="flex items-start gap-3 flex-1">
-                                <div class="w-12 h-12 bg-crono-light rounded-full flex items-center justify-center shrink-0 group-hover:bg-crono-teal transition-colors">
-                                    <svg class="w-6 h-6 text-crono-blue group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M17.34 6.66a5.5 5.5 0 00-7.78 0L6.66 9.56a5.5 5.5 0 000 7.78 5.5 5.5 0 007.78 0l2.9-2.9a5.5 5.5 0 000-7.78zm-4.24 6.36l-2.12-2.12m5.66-2.12L13.1 5.24"></path>
-                                    </svg>
-                                </div>
-                                <div class="flex-1 pr-8">
-                                    <h4 class="font-bold text-crono-dark text-base leading-tight group-hover:text-crono-teal transition-colors">${nombreMed}</h4>
-                                    <p class="text-xs text-gray-500 mt-0.5">Vía: <span class="font-medium">${med.viaAdministracion || 'General'}</span></p>
-                                    <p class="text-xs md:text-sm text-gray-500 mt-0.5">Próxima toma: <span class="font-semibold text-crono-blue">${proximaTomaTexto}</span></p>
-                                </div>
-                            </a>
-                            <button type="button" class="btn-ocultar-med text-gray-400 hover:text-red-500 transition-colors p-2" title="Eliminar medicamento">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2.000 2.000 0 0116.138 21H7.862a2.000 2.000 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>
-                        `;
-
-                    tarjeta.querySelector(".btn-ocultar-med").addEventListener("click", (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        confirmarOcultarMedicamento(idMed, nombreMed);
-                    });
-
-                    contenedorLista.appendChild(tarjeta);
-                });
-
-            } catch (error) {
-                console.error(`Error cargando medicamentos del perfil ${idPerfil}:`, error);
-                contadorLabel.textContent = `Error al cargar`;
-                contenedorLista.innerHTML = `<p class="text-red-400 text-sm italic text-center py-2">No se pudieron cargar los medicamentos.</p>`;
-            }
-        }
-
-        function toggleAcordeon(idSeccion) {
+        // Expande o contrae el listado de fármacos de un perfil;
+        function toggleAcordeon(idSeccion, idWrapper) {
             const contenido = document.getElementById(idSeccion);
             const icono = document.getElementById('icon-' + idSeccion);
+            const wrapper = idWrapper ? document.getElementById(idWrapper) : null;
 
             if (contenido.classList.contains('hidden')) {
                 contenido.classList.remove('hidden');
-                icono.classList.add('rotate-180');
+                contenido.classList.add('flex');
+                if (icono) icono.classList.add('rotate-180');
+                if (wrapper) {
+                    wrapper.classList.remove('md:rounded-full');
+                    wrapper.classList.add('md:rounded-3xl');
+                }
             } else {
                 contenido.classList.add('hidden');
-                icono.classList.remove('rotate-180');
+                contenido.classList.remove('flex');
+                if (icono) icono.classList.remove('rotate-180');
+                if (wrapper) {
+                    wrapper.classList.add('md:rounded-full');
+                    wrapper.classList.remove('md:rounded-3xl');
+                }
             }
         }
 
+        // Solicita confirmación, oculta el fármaco en el y recarga las secciones
         async function confirmarOcultarMedicamento(idMedicamento, nombre) {
             const confirmacion = await Swal.fire({
                 title: "¿Eliminar medicamento?",
@@ -330,6 +468,7 @@
                 const resultado = await response.json();
                 if (!response.ok) throw new Error(resultado.mensaje || "No se pudo eliminar el medicamento.");
 
+                // consultar el esquema para actualizar contadores y ocultar perfiles si quedaron sin fármacos
                 if (usuario) await cargarSeccionesPerfiles(usuario.id);
             } catch (error) {
                 console.error("Error:", error);

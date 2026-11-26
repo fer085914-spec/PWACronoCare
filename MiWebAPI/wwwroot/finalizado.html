@@ -4,6 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CronoCare - Medicación Concluida</title>
+    <!--
+      Se ejecuta antes de que el navegador renderice el <body> para evitar contenido protegido si el usuario no está autenticado o regresa
+    -->
+    <script>
+        (function () {
+            function tieneSesionValida() {
+                const guardado = localStorage.getItem('usuarioLogueado') || sessionStorage.getItem('empleados_usuario');
+                if (!guardado) return false;
+                try {
+                    const u = JSON.parse(guardado);
+                    const id = u && (u.id ?? u.idUsuario);
+                    return Boolean(id);
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            if (!tieneSesionValida()) {
+                document.documentElement.style.display = 'none';
+                window.location.replace('login.html');
+                return;
+            }
+
+            window.addEventListener('pageshow', (event) => {
+                if (event.persisted && !tieneSesionValida()) {
+                    document.documentElement.style.display = 'none';
+                    window.location.replace('login.html');
+                }
+            });
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -21,97 +52,159 @@
     </script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col">
+<body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col text-crono-dark">
 
+    <!-- Menú lateral deslizable oculto fuera de pantalla con translate-x-full -->
     <div id="sidebar" class="fixed inset-y-0 right-0 w-64 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
         <div class="p-5 bg-crono-blue text-white flex justify-between items-center">
-            <span class="font-bold text-lg">Menú CronoCare</span>
+            <span class="font-bold text-base">Menú CronoCare</span>
             <button id="closeSidebar" class="text-white hover:text-gray-200">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
-        <div class="flex flex-col p-6 gap-6">
+        <div class="flex flex-col p-6 gap-5 text-sm">
             <a href="index.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">🏠</span> Inicio
+                <span class="text-lg">🏠</span> Inicio
             </a>
             <a href="hoy.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">📅</span> Agenda de Hoy
+                <span class="text-lg">📅</span> Agenda de Hoy
+            </a>
+            <a href="perfiles.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-lg">👥</span> Perfiles
             </a>
             <a href="nuevo_farmaco.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">➕</span> Nuevo Registro
+                <span class="text-lg">➕</span> Nuevo Registro
+            </a>
+            <a href="listo.html" class="text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-lg">✅</span> Terminados
             </a>
             <hr>
             <button id="btnCerrarSesionLateral" class="text-left text-red-500 hover:text-red-700 font-semibold flex items-center gap-2">
-                <span class="text-xl">🚪</span> Salir
+                <span class="text-lg">🚪</span> Salir
             </button>
         </div>
     </div>
 
     <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40 transition-opacity"></div>
 
-    <div class="bg-crono-blue text-white p-4 md:px-8 md:py-5 shadow-md flex justify-between items-center z-10 w-full">
-        <a href="index.html" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Ir al inicio">
-            <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm rounded-full">
-                <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
+    <div class="w-full min-h-screen relative flex flex-col md:flex-row flex-1">
+
+        <aside class="hidden md:flex md:w-72 md:shrink-0 md:flex-col md:justify-between bg-[#2B7A96] text-white md:min-h-screen md:sticky md:top-0 shadow-md z-20">
+            <div class="p-7 flex flex-col">
+                <a href="index.html" class="flex items-center gap-3.5 mb-9 pb-4 border-b border-white/15 hover:opacity-95 transition-opacity" title="Ir al inicio">
+                    <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-white/30">
+                        <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-contain">
+                    </div>
+                    <span class="text-2xl font-bold tracking-wide text-white">CronoCare</span>
+                </a>
+
+                <nav class="flex flex-col gap-2.5 text-base">
+                    <a href="index.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Inicio</span>
+                    </a>
+                    <a href="hoy.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Hoy</span>
+                    </a>
+                    <a href="perfiles.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Perfiles</span>
+                    </a>
+                    <a href="listo.html" class="bg-white/20 border border-white/25 text-white font-semibold px-4 py-3 rounded-full flex items-center gap-3 shadow-2xs transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-white shrink-0"></span>
+                        <span>Terminados</span>
+                    </a>
+                    <button type="button" id="btnCerrarSesionPc" class="text-left text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors mt-1">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Salir</span>
+                    </button>
+                </nav>
             </div>
-            <h1 class="text-2xl md:text-3xl font-bold tracking-wide">CronoCare</h1>
-        </a>
-        <button id="openSidebar" class="hidden md:block text-white hover:text-crono-light transition-colors">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-        </button>
-    </div>
 
-    <div class="flex-1 pb-24 md:pb-12 w-full max-w-xl mx-auto flex flex-col p-6 mt-4">
+            <div class="p-7">
+                <a href="perfiles.html" class="w-full bg-[#1F657D] hover:bg-[#195367] text-white font-semibold py-3 px-4 rounded-full flex items-center justify-center gap-2.5 shadow-sm transition-colors text-sm">
+                    <span class="text-xl leading-none font-bold">+</span>
+                    <span>Nuevo fármaco</span>
+                </a>
+            </div>
+        </aside>
 
-        <div class="flex items-center mb-6 w-full">
-            <a href="listo.html" class="text-gray-700 hover:text-crono-teal transition-colors flex-shrink-0">
-                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
-                </svg>
-            </a>
-            <h2 class="text-lg md:text-xl font-bold text-center text-crono-dark tracking-wide flex-1 mr-10 uppercase">MEDICACIÓN CONCLUIDA</h2>
+        <div class="flex-1 flex flex-col min-w-0">
+
+            <div class="md:hidden bg-[#2B7A96] text-white p-4 shadow-md flex justify-between items-center z-10 w-full">
+                <a href="index.html" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Ir al inicio">
+                    <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm rounded-full">
+                        <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
+                    </div>
+                    <h1 class="text-2xl font-bold tracking-wide">CronoCare</h1>
+                </a>
+            </div>
+
+            <div class="flex-1 pb-24 md:pb-12 w-full max-w-xl md:max-w-4xl mx-auto flex flex-col p-6 md:px-10 md:pt-9 mt-4 md:mt-0">
+
+                <div class="flex md:hidden items-center mb-6 w-full">
+                    <a href="listo.html" class="text-gray-700 hover:text-crono-teal transition-colors flex-shrink-0">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+                        </svg>
+                    </a>
+                    <h2 class="text-lg font-bold text-center text-crono-dark tracking-wide flex-1 mr-10 uppercase">MEDICACIÓN CONCLUIDA</h2>
+                </div>
+
+                <div class="hidden md:block w-full mb-7">
+                    <h2 class="text-2xl font-bold text-crono-dark uppercase tracking-wide">DETALLE</h2>
+                    <p class="text-gray-700 mt-1 text-base font-medium">Tus medicamentos concluidos</p>
+                </div>
+
+                <!-- Tarjeta resumen con los datos del medicamento finalizado -->
+                <div class="bg-white/80 md:bg-white p-6 md:p-9 rounded-3xl shadow-sm border border-gray-200 md:border-crono-teal/40 flex flex-col gap-6">
+
+                    <!-- Sub-encabezado con el perfil del paciente al que pertenecía el tratamiento -->
+                    <div id="infoPerfilConcluido" class="hidden md:flex items-center justify-between pb-3 border-b border-gray-200 text-sm text-gray-500">
+                        <span id="perfilConcluidoTexto" class="font-medium text-crono-dark">Perfil asignado</span>
+                    </div>
+
+                    <!-- muestra ícono por defecto o se reemplaza por su fotografía -->
+                    <div class="flex items-center gap-4 md:gap-6 border-b md:border-b-0 border-gray-200 pb-4 md:pb-1">
+                        <div id="medicamentoIconoContenedor" class="w-14 h-14 md:w-24 md:h-24 bg-crono-light rounded-full flex items-center justify-center shrink-0 shadow-inner overflow-hidden">
+                            <svg class="w-7 h-7 md:w-11 md:h-11 text-crono-teal" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M17.34 6.66a5.5 5.5 0 00-7.78 0L6.66 9.56a5.5 5.5 0 000 7.78 5.5 5.5 0 007.78 0l2.9-2.9a5.5 5.5 0 000-7.78zm-4.24 6.36l-2.12-2.12m5.66-2.12L13.1 5.24"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 id="nombreMedicamento" class="font-bold text-gray-700 md:text-crono-dark text-lg md:text-xl leading-tight uppercase">Nombre del medicamento</h3>
+                            <p id="viaMedicamento" class="text-xs md:text-sm text-gray-500 mt-1">Vía de administración</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 md:gap-5">
+                        <div class="bg-[#E7F3F5] rounded-2xl p-4 md:p-5 min-h-[88px] md:min-h-[108px] flex flex-col justify-between">
+                            <p class="text-[11px] text-crono-dark font-bold mb-1 uppercase tracking-wider">Días tomados</p>
+                            <p id="diasTomados" class="text-base md:text-lg font-bold text-crono-dark">-</p>
+                        </div>
+
+                        <div class="bg-[#E7F3F5] rounded-2xl p-4 md:p-5 min-h-[88px] md:min-h-[108px] flex flex-col justify-between">
+                            <p class="text-[11px] text-crono-dark font-bold mb-1 uppercase tracking-wider">Tomas completadas / No completadas</p>
+                            <p id="tomasCompletadas" class="text-sm md:text-base font-bold text-crono-dark">-</p>
+                        </div>
+
+                        <div class="bg-[#E7F3F5] rounded-2xl p-4 md:p-5 min-h-[88px] md:min-h-[108px] flex flex-col justify-between">
+                            <p class="text-[11px] text-crono-dark font-bold mb-1 uppercase tracking-wider">Día de inicio</p>
+                            <p id="diaInicio" class="text-base md:text-lg font-bold text-crono-dark">-</p>
+                        </div>
+
+                        <div class="bg-[#E7F3F5] rounded-2xl p-4 md:p-5 min-h-[88px] md:min-h-[108px] flex flex-col justify-between">
+                            <p class="text-[11px] text-crono-dark font-bold mb-1 uppercase tracking-wider">Día de conclusión</p>
+                            <p id="diaConclusion" class="text-base md:text-lg font-bold text-crono-dark">-</p>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
         </div>
-
-        <div class="bg-white/80 p-6 md:p-8 rounded-3xl shadow-sm border border-gray-200 flex flex-col gap-6">
-
-            <div class="flex items-center gap-4 border-b border-gray-200 pb-4">
-                <div id="medicamentoIconoContenedor" class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center shrink-0 shadow-inner overflow-hidden">
-                    <svg class="w-8 h-8 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M17.34 6.66a5.5 5.5 0 00-7.78 0L6.66 9.56a5.5 5.5 0 000 7.78 5.5 5.5 0 007.78 0l2.9-2.9a5.5 5.5 0 000-7.78zm-4.24 6.36l-2.12-2.12m5.66-2.12L13.1 5.24"></path>
-                    </svg>
-                </div>
-                <h3 id="nombreMedicamento" class="font-bold text-gray-700 text-xl md:text-2xl leading-tight">Nombre del medicamento</h3>
-            </div>
-
-            <div class="flex flex-col gap-4 pl-2">
-                <div>
-                    <p class="text-sm text-gray-500 font-semibold mb-1 uppercase tracking-wide">Días tomados</p>
-                    <p id="diasTomados" class="text-lg font-bold text-gray-800">-</p>
-                </div>
-
-                <div>
-                    <p class="text-sm text-gray-500 font-semibold mb-1 uppercase tracking-wide">Tomas completadas / No completadas</p>
-                    <p id="tomasCompletadas" class="text-lg font-bold text-gray-800">-</p>
-                </div>
-
-                <div>
-                    <p class="text-sm text-gray-500 font-semibold mb-1 uppercase tracking-wide">Día de inicio</p>
-                    <p id="diaInicio" class="text-lg font-bold text-gray-800">-</p>
-                </div>
-
-                <div>
-                    <p class="text-sm text-gray-500 font-semibold mb-1 uppercase tracking-wide">Día de conclusión</p>
-                    <p id="diaConclusion" class="text-lg font-bold text-gray-800">-</p>
-                </div>
-            </div>
-
-        </div>
-
     </div>
-
-    <a href="nuevo_farmaco.html" class="hidden md:flex fixed bottom-10 right-10 bg-crono-teal text-white w-16 h-16 rounded-full items-center justify-center text-5xl shadow-2xl hover:scale-110 hover:bg-crono-blue transition-all z-40 pb-2">
-        +
-    </a>
 
     <div class="md:hidden fixed bottom-0 w-full h-16 bg-white border-t border-gray-200 flex justify-between items-center px-2 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-30">
         <a href="index.html" class="flex flex-col items-center text-gray-400 hover:text-crono-teal w-1/5 transition-colors">
@@ -129,7 +222,7 @@
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <span class="text-[9px] font-bold mt-1">LISTO</span>
         </a>
-        <button class="flex flex-col items-center text-gray-400 hover:text-red-500 w-1/5 transition-colors" onclick="sessionStorage.removeItem('empleados_usuario'); window.location.replace('login.html');">
+        <button type="button" id="btnCerrarSesion" class="flex flex-col items-center text-gray-400 hover:text-red-500 w-1/5 transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
             <span class="text-[9px] font-bold mt-1">SALIR</span>
         </button>
@@ -146,17 +239,59 @@
             overlay.classList.toggle('hidden');
         }
 
-        openBtn.addEventListener('click', toggleMenu);
-        closeBtn.addEventListener('click', toggleMenu);
-        overlay.addEventListener('click', toggleMenu);
+        if (openBtn) openBtn.addEventListener('click', toggleMenu);
+        if (closeBtn) closeBtn.addEventListener('click', toggleMenu);
+        if (overlay) overlay.addEventListener('click', toggleMenu);
 
+        // Recupera y normaliza los datos básicos del usuario activo desde localStorage o sessionStorage
+        function obtenerUsuarioSesion() {
+            const guardado = localStorage.getItem("usuarioLogueado") || sessionStorage.getItem("empleados_usuario");
+            if (!guardado) return null;
+            try {
+                const u = JSON.parse(guardado);
+                const id = u.id ?? u.idUsuario;
+                return id ? { id: Number(id), nombre: u.nombre } : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // Revalida que la sesión siga existiendo; si no, oculta el DOM antes de redirigir al login
+        function verificarSesionActiva() {
+            if (!obtenerUsuarioSesion()) {
+                document.documentElement.style.display = 'none';
+                window.location.replace("login.html");
+                return false;
+            }
+            document.documentElement.style.display = '';
+            return true;
+        }
+
+        // Limpia credenciales y perfiles seleccionados en ambos storages y sustituye el historial
         function cerrarSesion() {
+            document.documentElement.style.display = 'none';
+            localStorage.removeItem("usuarioLogueado");
+            localStorage.removeItem("perfilSeleccionado");
             sessionStorage.removeItem("empleados_usuario");
+            sessionStorage.removeItem("idPerfilSeleccionado");
             window.location.replace("login.html");
         }
-        document.getElementById('btnCerrarSesionLateral').addEventListener('click', cerrarSesion);
 
+        // Vincula cerrarSesion a los 3 botones disponibles según viewport (drawer, aside PC y barra móvil)
+        document.getElementById('btnCerrarSesionLateral')?.addEventListener('click', cerrarSesion);
+        document.getElementById('btnCerrarSesionPc')?.addEventListener('click', cerrarSesion);
+        document.getElementById('btnCerrarSesion')?.addEventListener('click', cerrarSesion);
+
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                verificarSesionActiva();
+            }
+        });
+
+        // --- Carga del resumen del medicamento concluido ---
         document.addEventListener("DOMContentLoaded", async () => {
+            if (!verificarSesionActiva()) return;
+
             const params = new URLSearchParams(window.location.search);
             const idMedicamento = params.get("id");
 
@@ -166,21 +301,35 @@
             }
 
             try {
+                // Consulta del endpoint que ejecuta sp_Medicamento_DetalleConcluido en el backend
                 const response = await fetch(`/api/Auth/medicamento/concluido-detalle/${idMedicamento}`);
                 if (!response.ok) throw new Error("Error al obtener los datos del medicamento.");
 
                 const medicamento = await response.json();
 
+                // renderizar el nombre y vía de administración
                 document.getElementById("nombreMedicamento").textContent = medicamento.nombreMedicamento || "Sin nombre";
+                const viaEl = document.getElementById("viaMedicamento");
+                if (viaEl && medicamento.viaAdministracion) {
+                    viaEl.textContent = medicamento.viaAdministracion;
+                }
+
                 document.getElementById("diasTomados").textContent = `${medicamento.diasTomados || 0} días`;
-
                 document.getElementById("tomasCompletadas").textContent = `${medicamento.tomasTomadas || 0} completadas / ${medicamento.tomasNoCompletadas || 0} no completadas`;
-
                 document.getElementById("diaInicio").textContent = formatearFecha(medicamento.fechaInicio);
                 document.getElementById("diaConclusion").textContent = formatearFecha(medicamento.fechaConclusion);
 
+                // Soporta propiedades planas (nombrePerfil/relacion) como objeto anidado (perfil.nombre)
+                const perfilTextoEl = document.getElementById("perfilConcluidoTexto");
+                const pNombre = medicamento.nombrePerfil || medicamento.perfil?.nombre;
+                const pRel = medicamento.relacion || medicamento.perfil?.relacion;
+                if (perfilTextoEl && pNombre) {
+                    perfilTextoEl.textContent = pRel ? `${pNombre} (${pRel})` : pNombre;
+                }
+
                 console.log("Pertenecía al perfil:", medicamento.nombrePerfil);
 
+                // Si el registro tiene foto guardada, reemplaza el SVG por la imagen
                 if (medicamento.foto) {
                     const contenedorIcono = document.getElementById("medicamentoIconoContenedor");
                     contenedorIcono.innerHTML = `<img src="${medicamento.foto}" alt="Foto" class="w-full h-full object-cover">`;
@@ -191,15 +340,11 @@
             }
         });
 
+        // Convierte una fecha ('YYYY-MM-DD' o 'YYYY-MM-DDTHH:mm:ss') a 'DD/MM/YYYY'
         function formatearFecha(fechaStr) {
             if (!fechaStr) return "-";
             const [anio, mes, dia] = fechaStr.split("T")[0].split("-");
-            return `${dia}/${mes}/${anio}`;
-        }
-
-        function formatearFecha(fechaStr) {
-            if (!fechaStr) return "-";
-            const [anio, mes, dia] = fechaStr.split("T")[0].split("-");
+            if (!anio || !mes || !dia) return fechaStr;
             return `${dia}/${mes}/${anio}`;
         }
     </script>

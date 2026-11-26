@@ -1,3 +1,4 @@
+// Referencias a los elementos del formulario de inicio de sesión
 const formLogin = document.getElementById("loginForm");
 const correoInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
@@ -6,8 +7,10 @@ const mensajeLogin = document.getElementById("mensajeLogin");
 
 if (formLogin) {
     formLogin.addEventListener("submit", async (evento) => {
+        // Evitar que el formulario recargue la página por defecto
         evento.preventDefault();
 
+        // Ocultar mensajes de error previos y bloquear el botón mientras procesa
         if (mensajeLogin) mensajeLogin.classList.add("hidden");
         if (btnLogin) {
             btnLogin.disabled = true;
@@ -16,6 +19,7 @@ if (formLogin) {
         }
 
         try {
+            // Enviar correo y contraseña al endpoint de autenticación
             const respuesta = await fetch("/api/Auth/login", {
                 method: "POST",
                 headers: {
@@ -27,6 +31,7 @@ if (formLogin) {
                 })
             });
 
+            // Leer como texto para evitar errores si la respuesta esta vacía
             const textoRespuesta = await respuesta.text();
             const resultado = textoRespuesta ? JSON.parse(textoRespuesta) : {};
 
@@ -34,17 +39,19 @@ if (formLogin) {
                 throw new Error(resultado.message || "Credenciales incorrectas.");
             }
 
+            // Guardar los datos del usuario para usarlos en el resto de la app
             localStorage.setItem("usuarioLogueado", JSON.stringify(resultado.usuario));
 
-            // Redirección directa sin alerta de bienvenida
             window.location.replace("index.html");
 
         } catch (error) {
+            // Mostrar el error en pantalla si falló la petición o las credenciales
             if (mensajeLogin) {
                 mensajeLogin.textContent = error.message || "Ocurrió un error al conectar con la API.";
                 mensajeLogin.classList.remove("hidden");
             }
         } finally {
+            // Restaurar el botón al terminar (haya éxito o error)
             if (btnLogin) {
                 btnLogin.disabled = false;
                 btnLogin.textContent = "INICIAR SESIÓN";

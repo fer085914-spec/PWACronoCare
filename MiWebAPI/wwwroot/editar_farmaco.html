@@ -4,6 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CronoCare - Editar Fármaco</title>
+    <!-- Verificación de sesión -->
+    <script>
+        (function () {
+            function tieneSesionValida() {
+                const guardado = localStorage.getItem('usuarioLogueado') || sessionStorage.getItem('empleados_usuario');
+                if (!guardado) return false;
+                try {
+                    const u = JSON.parse(guardado);
+                    const id = u && (u.id ?? u.idUsuario);
+                    return Boolean(id);
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            if (!tieneSesionValida()) {
+                document.documentElement.style.display = 'none';
+                window.location.replace('login.html');
+                return;
+            }
+
+            // Revalida la sesión si el usuario regresa desde el historial
+            window.addEventListener('pageshow', (event) => {
+                if (event.persisted && !tieneSesionValida()) {
+                    document.documentElement.style.display = 'none';
+                    window.location.replace('login.html');
+                }
+            });
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -22,109 +52,164 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col">
+<body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col text-crono-dark">
 
+    <!-- Menú lateral -->
     <div id="sidebar" class="fixed inset-y-0 right-0 w-64 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
         <div class="p-5 bg-crono-blue text-white flex justify-between items-center">
-            <span class="font-bold text-lg">Menú CronoCare</span>
+            <span class="font-bold text-base">Menú CronoCare</span>
             <button id="closeSidebar" class="text-white hover:text-gray-200">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
-        <div class="flex flex-col p-6 gap-6">
+        <div class="flex flex-col p-6 gap-5 text-sm">
             <a href="index.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">🏠</span> Inicio
+                <span class="text-lg">🏠</span> Inicio
             </a>
             <a href="hoy.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">📅</span> Agenda de Hoy
+                <span class="text-lg">📅</span> Agenda de Hoy
+            </a>
+            <a href="perfiles.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-lg">👥</span> Perfiles
             </a>
             <a href="nuevo_farmaco.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-xl">➕</span> Nuevo Registro
+                <span class="text-lg">➕</span> Nuevo Registro
+            </a>
+            <a href="listo.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-lg">✅</span> Terminados
             </a>
             <hr>
             <button id="btnCerrarSesionLateral" class="text-left text-red-500 hover:text-red-700 font-semibold flex items-center gap-2">
-                <span class="text-xl">🚪</span> Salir
+                <span class="text-lg">🚪</span> Salir
             </button>
         </div>
     </div>
 
+    <!-- Fondo del menú lateral -->
     <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40 transition-opacity"></div>
 
-    <div class="bg-crono-blue text-white p-4 md:px-8 md:py-5 shadow-md flex justify-between items-center z-10 w-full">
-        <a href="index.html" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Ir al inicio">
-            <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm rounded-full">
-                <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
-            </div>
-            <h1 class="text-2xl md:text-3xl font-bold tracking-wide">CronoCare</h1>
-        </a>
-        <button id="openSidebar" class="hidden md:block text-white hover:text-crono-light transition-colors">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-        </button>
-    </div>
+    <div class="w-full min-h-screen relative flex flex-col md:flex-row flex-1">
 
-    <div class="flex-1 pb-24 md:pb-12 w-full max-w-xl mx-auto flex flex-col p-6 mt-4">
-
-        <div class="flex items-center mb-6 w-full">
-            <a id="btnVolverDetalle" href="detalle_farmaco.html" class="text-gray-700 hover:text-crono-teal transition-colors flex-shrink-0">
-                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
-                </svg>
-            </a>
-            <h2 class="text-xl md:text-2xl font-bold text-center text-crono-dark tracking-wide flex-1 mr-10 uppercase">EDITAR FÁRMACO</h2>
-        </div>
-
-        <form id="formEditarMedicamento" class="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-200 flex flex-col gap-5">
-
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1 pl-1">Nombre del medicamento:</label>
-                <input type="text" id="txtNombreMedicamento" class="w-full bg-gray-100 border-2 border-transparent rounded-full px-4 py-2.5 focus:outline-none focus:border-crono-teal shadow-inner" required>
-            </div>
-
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1 pl-1">Vía de administración:</label>
-                <select id="selectVia" class="w-full bg-gray-100 border-2 border-transparent rounded-full px-4 py-2.5 focus:outline-none focus:border-crono-teal shadow-inner appearance-none text-gray-700" required>
-                    <option value="" disabled selected>Cargando vías...</option>
-                </select>
-            </div>
-
-            <div class="flex gap-4">
-                <div class="flex-1">
-                    <label class="block text-sm font-bold text-gray-700 mb-1 pl-1">Intervalo (horas):</label>
-                    <input type="number" id="txtIntervalo" min="1" max="168" class="w-full bg-gray-100 border-2 border-transparent rounded-full px-4 py-2.5 text-center font-semibold focus:outline-none focus:border-crono-teal shadow-inner" required>
-                </div>
-                <div class="flex-1">
-                    <label class="block text-sm font-bold text-gray-700 mb-1 pl-1">Duración (días):</label>
-                    <input type="number" id="txtDuracion" min="1" max="365" class="w-full bg-gray-100 border-2 border-transparent rounded-full px-4 py-2.5 text-center font-semibold focus:outline-none focus:border-crono-teal shadow-inner" required>
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1 pl-1 text-center">Hora de la primera toma:</label>
-                <div class="flex justify-center">
-                    <input type="time" id="txtHoraInicio" class="bg-gray-200 border-2 border-transparent rounded-full px-6 py-2 text-center font-bold text-lg focus:outline-none focus:border-crono-teal shadow-inner" required>
-                </div>
-            </div>
-
-            <div id="avisoFotoNueva" class="hidden bg-crono-light border border-crono-teal text-crono-dark rounded-2xl px-4 py-2.5 text-xs font-semibold text-center">
-                Nueva fotografía capturada y lista para guardarse.
-            </div>
-
-            <div class="flex flex-col gap-3 mt-4">
-                <a id="btnActualizarFoto" href="#" class="w-full bg-crono-teal text-white font-bold py-3 rounded-full hover:bg-crono-blue transition-colors shadow-md text-sm tracking-wide block text-center">
-                    ACTUALIZAR FOTO
+        <!-- Navegación lateral -->
+        <aside class="hidden md:flex md:w-72 md:shrink-0 md:flex-col md:justify-between bg-[#2B7A96] text-white md:min-h-screen md:sticky md:top-0 shadow-md z-20">
+            <div class="p-7 flex flex-col">
+                <a href="index.html" class="flex items-center gap-3.5 mb-9 pb-4 border-b border-white/15 hover:opacity-95 transition-opacity" title="Ir al inicio">
+                    <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-white/30">
+                        <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-contain">
+                    </div>
+                    <span class="text-2xl font-bold tracking-wide text-white">CronoCare</span>
                 </a>
-                <button type="submit" id="btnGuardarCambios" class="w-full bg-crono-blue text-white font-bold py-3 rounded-full hover:bg-blue-700 transition-colors shadow-md text-sm tracking-wide">
-                    GUARDAR CAMBIOS
-                </button>
-                <button type="button" id="btnDescartar" class="w-full bg-gray-200 text-gray-700 font-bold py-3 rounded-full hover:bg-gray-300 transition-colors shadow-sm text-sm tracking-wide">
-                    DESCARTAR CAMBIOS
-                </button>
+
+                <nav class="flex flex-col gap-2.5 text-base">
+                    <a href="index.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Inicio</span>
+                    </a>
+                    <a href="hoy.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Hoy</span>
+                    </a>
+                    <a href="perfiles.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Perfiles</span>
+                    </a>
+                    <a href="listo.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Terminados</span>
+                    </a>
+                    <button type="button" id="btnCerrarSesionPc" class="text-left text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors mt-1">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Salir</span>
+                    </button>
+                </nav>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col min-w-0">
+
+            <!-- Barra superior -->
+            <div class="md:hidden bg-[#2B7A96] text-white p-4 shadow-md flex justify-between items-center z-10 w-full">
+                <a href="index.html" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Ir al inicio">
+                    <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm rounded-full">
+                        <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
+                    </div>
+                    <h1 class="text-2xl font-bold tracking-wide">CronoCare</h1>
+                </a>
             </div>
 
-        </form>
+            <div class="flex-1 pb-24 md:pb-14 w-full max-w-xl md:max-w-4xl mx-auto flex flex-col p-6 md:px-12 md:pt-9 mt-4 md:mt-0">
+
+                <!-- Encabezado y enlace para regresar al detalle -->
+                <div class="flex items-center mb-6 w-full">
+                    <a id="btnVolverDetalle" href="detalle_farmaco.html" class="md:hidden text-gray-700 hover:text-crono-teal transition-colors flex-shrink-0">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+                        </svg>
+                    </a>
+                    <h2 class="text-lg md:text-2xl font-bold text-center md:text-left text-crono-dark tracking-wide flex-1 md:flex-none mr-10 md:mr-0 uppercase">
+                        EDITAR <span id="tituloEditarFarmaco" class="font-bold"></span>
+                    </h2>
+                </div>
+
+                <!-- Formulario de edición del medicamento -->
+                <form id="formEditarMedicamento" class="bg-white p-6 md:p-10 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-5 md:gap-6">
+
+                    <div>
+                        <label class="block text-sm font-bold text-crono-dark mb-2 pl-1">Nombre del medicamento:</label>
+                        <input type="text" id="txtNombreMedicamento" class="w-full bg-gray-100 md:bg-white border-2 md:border border-transparent md:border-gray-300 rounded-full px-4 md:px-5 py-2.5 md:py-3 text-sm text-crono-dark focus:outline-none focus:border-crono-teal shadow-inner md:shadow-none transition-colors" required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-crono-dark mb-2 pl-1">Vía de administración:</label>
+                        <select id="selectVia" class="w-full bg-gray-100 md:bg-white border-2 md:border border-transparent md:border-gray-300 rounded-full px-4 md:px-5 py-2.5 md:py-3 text-sm focus:outline-none focus:border-crono-teal shadow-inner md:shadow-none appearance-none text-crono-dark transition-colors" required>
+                            <option value="" disabled selected>Cargando vías...</option>
+                        </select>
+                    </div>
+
+                    <div class="flex gap-4 md:gap-6">
+                        <div class="flex-1">
+                            <label class="block text-sm font-bold text-crono-dark mb-2 pl-1">Intervalo (horas):</label>
+                            <input type="number" id="txtIntervalo" min="1" max="168" class="w-full bg-gray-100 md:bg-white border-2 md:border border-transparent md:border-gray-300 rounded-full px-4 py-2.5 md:py-3 text-sm text-center font-semibold text-crono-dark focus:outline-none focus:border-crono-teal shadow-inner md:shadow-none transition-colors" required>
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-sm font-bold text-crono-dark mb-2 pl-1">Duración (días):</label>
+                            <input type="number" id="txtDuracion" min="1" max="365" class="w-full bg-gray-100 md:bg-white border-2 md:border border-transparent md:border-gray-300 rounded-full px-4 py-2.5 md:py-3 text-sm text-center font-semibold text-crono-dark focus:outline-none focus:border-crono-teal shadow-inner md:shadow-none transition-colors" required>
+                        </div>
+                    </div>
+
+                    <div class="pt-1">
+                        <label class="block text-sm font-bold text-crono-dark mb-2 pl-1 text-center">Hora de la primera toma:</label>
+                        <div class="flex justify-center">
+                            <input type="time" id="txtHoraInicio" class="bg-gray-200 md:bg-white border-2 md:border border-transparent md:border-gray-300 rounded-full px-6 md:px-8 py-2 text-center font-bold text-lg md:text-base text-crono-dark focus:outline-none focus:border-crono-teal shadow-inner md:shadow-none transition-colors" required>
+                        </div>
+                    </div>
+
+                    <!-- Aviso visible solo cuando ya se tomó una foto nueva en sessionStorage -->
+                    <div id="avisoFotoNueva" class="hidden bg-crono-light border border-crono-teal text-crono-dark rounded-2xl px-4 py-2.5 text-xs font-semibold text-center">
+                        Nueva fotografía capturada y lista para guardarse.
+                    </div>
+
+                    <div class="flex flex-col gap-3.5 mt-3">
+                        <div class="flex flex-col md:flex-row gap-3 md:gap-4">
+                            <a id="btnActualizarFoto" href="#" class="w-full md:w-1/2 bg-crono-teal text-white font-bold py-3 md:py-3.5 rounded-full hover:bg-crono-blue transition-colors shadow-md md:shadow-xs text-xs md:text-sm tracking-wider block text-center uppercase">
+                                ACTUALIZAR FOTO
+                            </a>
+                            <button type="button" id="btnDescartar" class="w-full md:w-1/2 bg-gray-200 md:bg-[#C8CED2] text-gray-700 md:text-crono-dark font-bold py-3 md:py-3.5 rounded-full hover:bg-gray-300 transition-colors shadow-sm md:shadow-none text-xs md:text-sm tracking-wider uppercase">
+                                DESCARTAR CAMBIOS
+                            </button>
+                        </div>
+                        <button type="submit" id="btnGuardarCambios" class="w-full bg-crono-blue text-white font-bold py-3 md:py-3.5 rounded-full hover:bg-blue-700 md:hover:bg-[#1F5E80] transition-colors shadow-md md:shadow-xs text-xs md:text-sm tracking-wider uppercase">
+                            GUARDAR CAMBIOS
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
     </div>
 
     <script>
+        // Clave temporal donde se guarda la foto capturada antes de enviarla al backend
         const CLAVE_FOTO_TEMP = 'fotoMedicamentoTemp';
 
         const sidebar = document.getElementById('sidebar');
@@ -142,14 +227,7 @@
         if (closeBtn) closeBtn.addEventListener('click', toggleMenu);
         if (overlay) overlay.addEventListener('click', toggleMenu);
 
-        function cerrarSesion() {
-            localStorage.removeItem("usuarioLogueado");
-            sessionStorage.removeItem("empleados_usuario");
-            sessionStorage.removeItem(CLAVE_FOTO_TEMP);
-            window.location.replace("login.html");
-        }
-        document.getElementById('btnCerrarSesionLateral')?.addEventListener('click', cerrarSesion);
-
+        // --- Gestión de sesión ---
         function obtenerUsuarioSesion() {
             const guardado = localStorage.getItem("usuarioLogueado") || sessionStorage.getItem("empleados_usuario");
             if (!guardado) return null;
@@ -162,6 +240,29 @@
             }
         }
 
+        function verificarSesionActiva() {
+            if (!obtenerUsuarioSesion()) {
+                document.documentElement.style.display = 'none';
+                window.location.replace("login.html");
+                return false;
+            }
+            document.documentElement.style.display = '';
+            return true;
+        }
+
+        function cerrarSesion() {
+            document.documentElement.style.display = 'none';
+            localStorage.removeItem("usuarioLogueado");
+            localStorage.removeItem("perfilSeleccionado");
+            sessionStorage.removeItem("empleados_usuario");
+            sessionStorage.removeItem("idPerfilSeleccionado");
+            sessionStorage.removeItem(CLAVE_FOTO_TEMP);
+            window.location.replace("login.html");
+        }
+        document.getElementById('btnCerrarSesionLateral')?.addEventListener('click', cerrarSesion);
+        document.getElementById('btnCerrarSesionPc')?.addEventListener('click', cerrarSesion);
+
+        // mostrar alertas con el estilo definido
         function mostrarAlertaCrono(titulo, mensaje, tipo = 'info') {
             return Swal.fire({
                 title: titulo,
@@ -177,6 +278,7 @@
             });
         }
 
+        // Mostrar u ocultar el aviso si ya hay una foto pendiente en sessionStorage
         function actualizarEstadoFotoPendiente() {
             const aviso = document.getElementById("avisoFotoNueva");
             const fotoPendiente = sessionStorage.getItem(CLAVE_FOTO_TEMP);
@@ -185,15 +287,13 @@
             }
         }
 
+        // Leer el id del fármaco desde la URL
         const params = new URLSearchParams(window.location.search);
         const idMedicamento = params.get("id");
 
         document.addEventListener("DOMContentLoaded", async () => {
+            if (!verificarSesionActiva()) return;
             const usuario = obtenerUsuarioSesion();
-            if (!usuario) {
-                window.location.replace("login.html");
-                return;
-            }
 
             if (!idMedicamento) {
                 await mostrarAlertaCrono("Atención", "No se especificó un medicamento para editar.", "warning");
@@ -201,13 +301,16 @@
                 return;
             }
 
+            // Configurar enlaces de regreso y captura de foto pasando el id actual
             document.getElementById("btnVolverDetalle").href = `detalle_farmaco.html?id=${idMedicamento}`;
             document.getElementById("btnActualizarFoto").href = `tomar_fotografia.html?id=${idMedicamento}`;
 
+            // Cargar catálogo de vías y los datos actuales del fármaco
             await cargarViasAdministracion();
             await cargarDatosMedicamento(usuario.id, idMedicamento);
             actualizarEstadoFotoPendiente();
 
+            // limpia foto temporal y vuelve al detalle sin guardar
             const btnDescartar = document.getElementById("btnDescartar");
             if (btnDescartar) {
                 btnDescartar.addEventListener("click", async () => {
@@ -235,10 +338,13 @@
             }
         });
 
-        window.addEventListener("pageshow", () => {
+        // Actualiza el indicador de foto nueva al volver desde tomar_fotografia.html
+        window.addEventListener("pageshow", (event) => {
+            if (!verificarSesionActiva()) return;
             actualizarEstadoFotoPendiente();
         });
 
+        // Llena el selector de vías de administración desde el catálogo
         async function cargarViasAdministracion() {
             try {
                 const response = await fetch('/api/Auth/catalogos/vias-administracion');
@@ -246,7 +352,7 @@
                     const vias = await response.json();
                     const selectVia = document.getElementById("selectVia");
                     if (selectVia) {
-                        selectVia.innerHTML = '<option value="" disabled selected>Seleccionar vía</option>';
+                        selectVia.innerHTML = '<option value="" disabled selected>Seleccionar</option>';
                         vias.forEach(v => {
                             const idV = v.id ?? v.idVia;
                             selectVia.innerHTML += `<option value="${idV}">${v.nombre}</option>`;
@@ -258,6 +364,7 @@
             }
         }
 
+        // Precarga los datos actuales del medicamento en los inputs del formulario
         async function cargarDatosMedicamento(idUsuario, idMed) {
             try {
                 const response = await fetch(`/api/Auth/medicamentos/detalle/${idUsuario}/${idMed}`);
@@ -267,6 +374,10 @@
                 console.log("Datos recibidos para editar:", data);
 
                 document.getElementById("txtNombreMedicamento").value = data.nombreMedicamento || "";
+                const tituloEditar = document.getElementById("tituloEditarFarmaco");
+                if (tituloEditar && data.nombreMedicamento) {
+                    tituloEditar.textContent = data.nombreMedicamento;
+                }
 
                 const selectVia = document.getElementById("selectVia");
                 if (selectVia && data.idVia) {
@@ -276,6 +387,7 @@
                 document.getElementById("txtIntervalo").value = data.intervaloHoras || 8;
                 document.getElementById("txtDuracion").value = data.duracionDias || 5;
 
+                // Normaliza la hora a formato HH:mm"
                 if (data.horaPrimeraToma) {
                     let horaLimpia = data.horaPrimeraToma.toString();
                     if (horaLimpia.includes('T')) {
@@ -290,13 +402,11 @@
             }
         }
 
+        // Envía los cambios del formulario al endpoint PUT
         document.getElementById("formEditarMedicamento").addEventListener("submit", async (e) => {
             e.preventDefault();
+            if (!verificarSesionActiva()) return;
             const usuario = obtenerUsuarioSesion();
-            if (!usuario) {
-                window.location.replace("login.html");
-                return;
-            }
 
             const fotoNueva = sessionStorage.getItem(CLAVE_FOTO_TEMP);
 
@@ -324,6 +434,7 @@
                     throw new Error(resultado.message || "Error al actualizar el medicamento.");
                 }
 
+                // Limpia la foto temporal cuando el backend confirmó el guardado
                 sessionStorage.removeItem(CLAVE_FOTO_TEMP);
                 actualizarEstadoFotoPendiente();
 

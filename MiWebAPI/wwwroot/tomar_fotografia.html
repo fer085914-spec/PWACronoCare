@@ -4,6 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CronoCare - Tomar Fotografía</title>
+    <!--
+        Corre antes de renderizar el <body> para evitar contenido protegido sino hay sesión activa
+    -->
+    <script>
+        (function () {
+            function tieneSesionValida() {
+                const guardado = localStorage.getItem('usuarioLogueado') || sessionStorage.getItem('empleados_usuario');
+                if (!guardado) return false;
+                try {
+                    const u = JSON.parse(guardado);
+                    const id = u && (u.id ?? u.idUsuario);
+                    return Boolean(id);
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            if (!tieneSesionValida()) {
+                document.documentElement.style.display = 'none';
+                window.location.replace('login.html');
+                return;
+            }
+
+            // 'pageshow' con event.persisted === true detecta si la página vuelve desde la BFCache al navegar con Atrás/Adelante
+            window.addEventListener('pageshow', (event) => {
+                if (event.persisted && !tieneSesionValida()) {
+                    document.documentElement.style.display = 'none';
+                    window.location.replace('login.html');
+                }
+            });
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -23,66 +55,208 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col">
+<body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col text-crono-dark">
 
-    <div class="bg-crono-blue text-white p-4 md:px-8 md:py-5 shadow-md flex justify-between items-center z-10 w-full">
-        <a href="index.html" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Ir al inicio">
-            <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm rounded-full">
-                <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
-            </div>
-            <h1 class="text-2xl md:text-3xl font-bold tracking-wide">CronoCare</h1>
-        </a>
-        <button id="openSidebar" class="hidden md:block text-white hover:text-crono-light transition-colors">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-        </button>
-    </div>
-
-    <div class="md:hidden flex-1 pb-24 w-full flex flex-col p-6 items-center">
-
-        <h2 class="text-sm font-bold text-center text-black mb-6 tracking-wide uppercase">TOMAR FOTOGRAFÍA</h2>
-
-        <div id="pasoVisor" class="w-full flex flex-col items-center transition-all duration-300">
-            <div class="w-full h-56 bg-black rounded-3xl overflow-hidden border border-gray-300 flex items-center justify-center mb-8 shadow-inner relative">
-                <video id="videoCamara" autoplay playsinline class="w-full h-full object-cover"></video>
-            </div>
-
-            <button id="btnTomarFoto" type="button" class="bg-crono-teal text-white font-bold py-3 px-8 rounded-full hover:bg-crono-blue transition-colors shadow-md text-xs tracking-wider uppercase">
-                Tomar Fotografía
+    <!-- Menú lateral deslizable -->
+    <div id="sidebar" class="fixed inset-y-0 right-0 w-64 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
+        <div class="p-5 bg-crono-blue text-white flex justify-between items-center">
+            <span class="font-bold text-base">Menú CronoCare</span>
+            <button id="closeSidebar" class="text-white hover:text-gray-200">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
-
-        <div id="pasoCaptura" class="w-full flex flex-col items-center hidden transition-all duration-300">
-            <div class="w-full h-56 bg-[#D4DFE2] rounded-3xl overflow-hidden border border-gray-300 flex items-center justify-center mb-6 shadow-inner relative">
-                <canvas id="canvasFoto" class="hidden"></canvas>
-                <img id="imagenPrevisualizacion" src="" alt="Foto Capturada" class="w-full h-full object-cover">
-            </div>
-
-            <p class="text-sm font-semibold mb-6 text-gray-800 text-center">¿La fotografía es clara?</p>
-
-            <div class="flex gap-4 w-full justify-center">
-                <button id="btnRepetir" type="button" class="bg-crono-btn-light text-crono-dark font-bold py-3 px-8 rounded-full hover:bg-gray-300 transition-colors shadow-md text-xs tracking-wider uppercase">
-                    Repetir
-                </button>
-                <button id="btnAceptar" type="button" class="bg-crono-teal text-white font-bold py-3 px-8 rounded-full hover:bg-crono-blue transition-colors shadow-md text-xs tracking-wider uppercase">
-                    Aceptar
-                </button>
-            </div>
+        <div class="flex flex-col p-6 gap-5 text-sm">
+            <a href="index.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-lg">🏠</span> Inicio
+            </a>
+            <a href="hoy.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-lg">📅</span> Agenda de Hoy
+            </a>
+            <a href="perfiles.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-lg">👥</span> Perfiles
+            </a>
+            <a href="nuevo_farmaco.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-lg">➕</span> Nuevo Registro
+            </a>
+            <a href="listo.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
+                <span class="text-lg">✅</span> Terminados
+            </a>
+            <hr>
+            <button id="btnCerrarSesionLateral" class="text-left text-red-500 hover:text-red-700 font-semibold flex items-center gap-2">
+                <span class="text-lg">🚪</span> Salir
+            </button>
         </div>
-
     </div>
 
-    <div class="hidden md:flex flex-1 flex-col items-center justify-center p-10 text-center bg-white m-10 rounded-3xl shadow-sm border border-gray-200">
-        <span class="text-6xl mb-4">📱</span>
-        <h2 class="text-2xl font-bold text-crono-dark mb-2">Función exclusiva para móviles</h2>
-        <p class="text-gray-600 max-w-md">La captura de fotografías requiere el uso de la cámara de tu teléfono celular. Por favor, accede a esta función desde tu dispositivo móvil.</p>
-        <button type="button" onclick="window.history.back();" class="mt-8 bg-crono-blue text-white font-bold py-3 px-8 rounded-full shadow-md hover:bg-blue-700 transition-colors">
-            VOLVER AL FORMULARIO
-        </button>
+    <!-- Fondo  del menú lateral -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40 transition-opacity"></div>
+
+    <div class="w-full min-h-screen relative flex flex-col md:flex-row flex-1">
+
+        <aside class="hidden md:flex md:w-72 md:shrink-0 md:flex-col md:justify-between bg-[#2B7A96] text-white md:min-h-screen md:sticky md:top-0 shadow-md z-20">
+            <div class="p-7 flex flex-col">
+                <a href="index.html" class="flex items-center gap-3.5 mb-9 pb-4 border-b border-white/15 hover:opacity-95 transition-opacity" title="Ir al inicio">
+                    <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-white/30">
+                        <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-contain">
+                    </div>
+                    <span class="text-2xl font-bold tracking-wide text-white">CronoCare</span>
+                </a>
+
+                <nav class="flex flex-col gap-2.5 text-base">
+                    <a href="index.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Inicio</span>
+                    </a>
+                    <a href="hoy.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Hoy</span>
+                    </a>
+                    <a href="perfiles.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Perfiles</span>
+                    </a>
+                    <a href="listo.html" class="text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Terminados</span>
+                    </a>
+                    <button type="button" id="btnCerrarSesionPc" class="text-left text-white/85 hover:bg-white/10 hover:text-white font-medium px-4 py-3 rounded-full flex items-center gap-3 transition-colors mt-1">
+                        <span class="w-2 h-2 rounded-full bg-transparent shrink-0"></span>
+                        <span>Salir</span>
+                    </button>
+                </nav>
+            </div>
+
+            <div class="p-7">
+                <a href="perfiles.html" class="w-full bg-[#1F657D] hover:bg-[#195367] text-white font-semibold py-3 px-4 rounded-full flex items-center justify-center gap-2.5 shadow-sm transition-colors text-sm">
+                    <span class="text-xl leading-none font-bold">+</span>
+                    <span>Nuevo fármaco</span>
+                </a>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col min-w-0">
+
+            <!-- Encabezado superior móvil con disparador para el menú lateral -->
+            <div class="md:hidden bg-[#2B7A96] text-white p-4 shadow-md flex justify-between items-center z-10 w-full">
+                <a href="index.html" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Ir al inicio">
+                    <div class="w-10 h-10 flex items-center justify-center overflow-hidden shadow-sm rounded-full">
+                        <img src="/Images/logoCronoCare.png" alt="Logo CronoCare" class="w-full h-full object-cover">
+                    </div>
+                    <h1 class="text-2xl font-bold tracking-wide">CronoCare</h1>
+                </a>
+                <button id="openSidebar" type="button" class="text-white hover:text-crono-light transition-colors" aria-label="Abrir menú">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+            </div>
+
+            <!-- Flujo de cámara exclusivo para vista móvil (<768px) -->
+            <div class="md:hidden flex-1 pb-24 w-full flex flex-col p-6 items-center">
+
+                <h2 class="text-sm font-bold text-center text-black mb-6 tracking-wide uppercase">TOMAR FOTOGRAFÍA</h2>
+
+                <!-- visor en vivo de la cámara y botón de captura -->
+                <div id="pasoVisor" class="w-full flex flex-col items-center transition-all duration-300">
+                    <div class="w-full h-56 bg-black rounded-3xl overflow-hidden border border-gray-300 flex items-center justify-center mb-8 shadow-inner relative">
+                        <video id="videoCamara" autoplay playsinline class="w-full h-full object-cover"></video>
+                    </div>
+
+                    <button id="btnTomarFoto" type="button" class="bg-crono-teal text-white font-bold py-3 px-8 rounded-full hover:bg-crono-blue transition-colors shadow-md text-xs tracking-wider uppercase">
+                        Tomar Fotografía
+                    </button>
+                </div>
+
+                <!-- previsualización del fotograma capturado para repetir o aceptar -->
+                <div id="pasoCaptura" class="w-full flex flex-col items-center hidden transition-all duration-300">
+                    <div class="w-full h-56 bg-[#D4DFE2] rounded-3xl overflow-hidden border border-gray-300 flex items-center justify-center mb-6 shadow-inner relative">
+                        <canvas id="canvasFoto" class="hidden"></canvas>
+                        <img id="imagenPrevisualizacion" src="" alt="Foto Capturada" class="w-full h-full object-cover">
+                    </div>
+
+                    <p class="text-sm font-semibold mb-6 text-gray-800 text-center">¿La fotografía es clara?</p>
+
+                    <div class="flex gap-4 w-full justify-center">
+                        <button id="btnRepetir" type="button" class="bg-crono-btn-light text-crono-dark font-bold py-3 px-8 rounded-full hover:bg-gray-300 transition-colors shadow-md text-xs tracking-wider uppercase">
+                            Repetir
+                        </button>
+                        <button id="btnAceptar" type="button" class="bg-crono-teal text-white font-bold py-3 px-8 rounded-full hover:bg-crono-blue transition-colors shadow-md text-xs tracking-wider uppercase">
+                            Aceptar
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Aviso la captura directa desde cámara se limita a dispositivos móviles -->
+            <div class="hidden md:flex flex-1 flex-col items-center justify-center p-10 text-center bg-white m-10 rounded-3xl shadow-sm border border-crono-teal/40 max-w-4xl w-full mx-auto">
+                <span class="text-5xl mb-4">📱</span>
+                <h2 class="text-xl font-bold text-crono-dark mb-2">Función exclusiva para móviles</h2>
+                <p class="text-sm text-gray-600 max-w-md">La captura de fotografías requiere el uso de la cámara de tu teléfono celular. Por favor, accede a esta función desde tu dispositivo móvil.</p>
+                <button type="button" onclick="window.history.back();" class="mt-7 bg-crono-teal text-white font-bold py-3 px-8 rounded-full shadow-sm hover:bg-crono-blue transition-colors text-xs tracking-wider uppercase">
+                    VOLVER AL FORMULARIO
+                </button>
+            </div>
+
+        </div>
     </div>
 
     <script>
+        // Clave temporal en sessionStorage para transferir la imagen capturada a nuevo_farmaco.html
         const CLAVE_FOTO_TEMP = 'fotoMedicamentoTemp';
 
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        const openBtn = document.getElementById('openSidebar');
+        const closeBtn = document.getElementById('closeSidebar');
+
+        function toggleMenu() {
+            if (sidebar && overlay) {
+                sidebar.classList.toggle('translate-x-full');
+                overlay.classList.toggle('hidden');
+            }
+        }
+        if (openBtn) openBtn.addEventListener('click', toggleMenu);
+        if (closeBtn) closeBtn.addEventListener('click', toggleMenu);
+        if (overlay) overlay.addEventListener('click', toggleMenu);
+
+        // --- Validación de sesión y cierre limpiando recursos de cámara ---
+        function tieneSesionValida() {
+            const guardado = localStorage.getItem('usuarioLogueado') || sessionStorage.getItem('empleados_usuario');
+            if (!guardado) return false;
+            try {
+                const u = JSON.parse(guardado);
+                const id = u && (u.id ?? u.idUsuario);
+                return Boolean(id);
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function verificarSesionActiva() {
+            if (!tieneSesionValida()) {
+                // Apagar la cámara antes de redirigir para no dejar el hardware activo en segundo plano
+                detenerCamara();
+                document.documentElement.style.display = 'none';
+                window.location.replace('login.html');
+                return false;
+            }
+            document.documentElement.style.display = '';
+            return true;
+        }
+
+        function cerrarSesion() {
+            detenerCamara();
+            document.documentElement.style.display = 'none';
+            localStorage.removeItem("usuarioLogueado");
+            localStorage.removeItem("perfilSeleccionado");
+            sessionStorage.removeItem("empleados_usuario");
+            sessionStorage.removeItem("idPerfilSeleccionado");
+            sessionStorage.removeItem(CLAVE_FOTO_TEMP);
+            window.location.replace("login.html");
+        }
+        document.getElementById('btnCerrarSesionLateral')?.addEventListener('click', cerrarSesion);
+        document.getElementById('btnCerrarSesionPc')?.addEventListener('click', cerrarSesion);
+
+        // --- Referencias del flujo de cámara y captura ---
         const visor = document.getElementById('pasoVisor');
         const captura = document.getElementById('pasoCaptura');
         const video = document.getElementById('videoCamara');
@@ -93,8 +267,15 @@
         const btnRepetir = document.getElementById('btnRepetir');
         const btnAceptar = document.getElementById('btnAceptar');
 
+        // Guardar el MediaStream activo para poder detener todas sus pistas de video al salir o capturar
         let streamCamara = null;
 
+        // Alinear con el breakpoint md de Tailwind
+        function esDispositivoMovil() {
+            return window.innerWidth < 768;
+        }
+
+        // Detener cada MediaStreamTrack para apagar el indicador de cámara y liberar recursos del dispositivo
         function detenerCamara() {
             if (streamCamara) {
                 streamCamara.getTracks().forEach(track => track.stop());
@@ -105,6 +286,7 @@
             }
         }
 
+        // Restaurar la vista al paso inicial del visor, borra la foto temporal y limpia el canvas
         function resetearVisorDesdeCero() {
             detenerCamara();
             sessionStorage.removeItem(CLAVE_FOTO_TEMP);
@@ -129,16 +311,25 @@
             visor.classList.remove('hidden');
         }
 
+        // Solicita acceso a la cámara trasera ('environment') y cae a cualquier cámara disponible si falla
         async function iniciarCamara() {
+            if (!verificarSesionActiva()) return;
+            if (!esDispositivoMovil()) {
+                detenerCamara();
+                return;
+            }
+
             detenerCamara();
 
             try {
+                // facingMode exact: 'environment' prioriza la cámara trasera en teléfonos
                 streamCamara = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: { exact: 'environment' } },
                     audio: false
                 });
             } catch (error) {
                 try {
+                    // Fallback para dispositivos sin cámara trasera explícita o emuladores/tablets
                     streamCamara = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
                 } catch (err) {
                     await Swal.fire({
@@ -159,20 +350,36 @@
             video.srcObject = streamCamara;
         }
 
+        // captura limpia y enciende la cámara si estamos en viewport móvil
         async function prepararVistaNuevaCaptura() {
+            if (!verificarSesionActiva()) return;
             resetearVisorDesdeCero();
-            await iniciarCamara();
+            if (esDispositivoMovil()) {
+                await iniciarCamara();
+            }
         }
 
         document.addEventListener('DOMContentLoaded', prepararVistaNuevaCaptura);
+
+        // Al volver desde BFCache reinicia el visor
         window.addEventListener('pageshow', (event) => {
+            if (!verificarSesionActiva()) return;
             if (event.persisted) {
                 prepararVistaNuevaCaptura();
             }
         });
-        window.addEventListener('pagehide', detenerCamara);
 
+        // Liberar la cámara al ocultar/abandonar la página o si se redimensiona a vista de escritorio
+        window.addEventListener('pagehide', detenerCamara);
+        window.addEventListener('resize', () => {
+            if (!esDispositivoMovil()) {
+                detenerCamara();
+            }
+        });
+
+        // Captura el cuadro actual del <video> en un <canvas>, muestra la previsualización y apaga la cámara
         btnTomarFoto.addEventListener('click', () => {
+            if (!verificarSesionActiva()) return;
             if (!video.videoWidth || !video.videoHeight) return;
 
             canvas.width = video.videoWidth;
@@ -189,14 +396,18 @@
             captura.classList.remove('hidden');
         });
 
+        // Descarta la previsualización actual y vuelve a abrir el visor de la cámara
         btnRepetir.addEventListener('click', async () => {
+            if (!verificarSesionActiva()) return;
             imagenPrevisualizacion.src = '';
             captura.classList.add('hidden');
             visor.classList.remove('hidden');
             await iniciarCamara();
         });
 
+        // Convierte el contenido del <canvas> a Blob PNG y luego a Data URL para guardarlo en sessionStorage
         btnAceptar.addEventListener('click', () => {
+            if (!verificarSesionActiva()) return;
             btnAceptar.disabled = true;
             btnAceptar.textContent = 'GUARDANDO...';
 
