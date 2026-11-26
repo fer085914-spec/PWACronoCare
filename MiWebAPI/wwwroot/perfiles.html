@@ -60,7 +60,7 @@
     <div id="sidebar" class="fixed inset-y-0 right-0 w-64 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
         <div class="p-5 bg-crono-blue text-white flex justify-between items-center">
             <span class="font-bold text-base">Menú CronoCare</span>
-            <button id="closeSidebar" class="text-white hover:text-gray-200">
+            <button id="closeSidebar" type="button" class="text-white hover:text-gray-200">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
@@ -79,7 +79,7 @@
                 <span class="text-lg">✅</span> Terminados
             </a>
             <hr>
-            <button id="btnCerrarSesionLateral" class="text-left text-red-500 hover:text-red-700 font-semibold flex items-center gap-2">
+            <button id="btnCerrarSesionLateral" type="button" class="text-left text-red-500 hover:text-red-700 font-semibold flex items-center gap-2">
                 <span class="text-lg">🚪</span> Salir
             </button>
         </div>
@@ -320,7 +320,7 @@
             return elemento;
         }
 
-        // Convertir 'YYYY-MM-DD' a 'DD/MM/YYYY' 
+        // Convertir 'YYYY-MM-DD' a 'DD/MM/YYYY'
         function formatearFecha(iso) {
             if (!iso) return '';
             const [anio, mes, dia] = iso.split('-');
@@ -472,21 +472,31 @@
 
         // Carga del catálogo de tipos de perfil
         async function cargarTiposPerfil() {
-    const select = document.getElementById('tipoPerfilModal');
-    if (!select) return;
+            const select = document.getElementById('tipoPerfilModal');
+            if (!select) return;
 
-    try {
-        // Intentamos hacer la petición
-        const urlPeticion = `${API}/catalogos/tipos-perfil`;
-        console.log("Consultando tipos de perfil en:", urlPeticion);
+            try {
+                const urlPeticion = `${API}/catalogos/tipos-perfil`;
+                console.log("Consultando tipos de perfil en:", urlPeticion);
 
-        const tipos = await llamarApi(urlPeticion);
+                const tipos = await llamarApi(urlPeticion);
 
-        select.innerHTML = '<option value="" disabled selected>Selecciona una opción</option>';
+                select.innerHTML = '<option value="" disabled selected>Selecciona una opción</option>';
 
-        if (!tipos || tipos.length === 0) {
-            console.warn("La API respondió pero la lista llegó vacía.");
-            return;
+                if (!tipos || tipos.length === 0) {
+                    console.warn("La API respondió pero la lista llegó vacía.");
+                    return;
+                }
+
+                tipos.forEach((tipo) => {
+                    const opcion = document.createElement('option');
+                    opcion.value = tipo.idTipoPerfil;
+                    opcion.textContent = tipo.nombre;
+                    select.appendChild(opcion);
+                });
+            } catch (error) {
+                console.error('Error al cargar los tipos de perfil:', error);
+            }
         }
 
         // Guardar el perfil elegido en sessionStorage y navegar al formulario de registro de fármaco
@@ -505,7 +515,7 @@
             if (!verificarSesionActiva()) return;
             const usuario = obtenerUsuarioSesion();
 
-            // Si venimos redirigidos porque faltaba elegir un perfil, muestra el aviso 
+            // Si venimos redirigidos porque faltaba elegir un perfil, muestra el aviso
             const params = new URLSearchParams(window.location.search);
             const solicitarSeleccion =
                 params.get('sinPerfil') === '1' ||
