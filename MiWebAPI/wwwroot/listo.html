@@ -92,8 +92,8 @@
 
     <div class="w-full min-h-screen relative flex flex-col md:flex-row flex-1">
 
-        <!-- Barra lateral -->
-        <aside class="hidden md:flex md:w-72 md:shrink-0 md:flex-col md:justify-between bg-[#2B7A96] text-white md:min-h-screen md:sticky md:top-0 shadow-md z-20">
+        <!-- CAMBIO 1: Barra lateral fija en escritorio -->
+        <aside class="hidden md:flex md:w-72 md:shrink-0 md:flex-col md:justify-between md:fixed md:inset-y-0 md:left-0 md:h-screen md:overflow-y-auto bg-[#2B7A96] text-white shadow-md z-20">
             <div class="p-7 flex flex-col">
                 <a href="index.html" class="flex items-center gap-3.5 mb-9 pb-4 border-b border-white/15 hover:opacity-95 transition-opacity" title="Ir al inicio">
                     <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-white/30">
@@ -135,7 +135,8 @@
             </div>
         </aside>
 
-        <div class="flex-1 flex flex-col min-w-0">
+        <!-- CAMBIO 2: Se agrega md:pl-72 para que el contenido principal se desplace junto al menú fijo -->
+        <div class="flex-1 flex flex-col min-w-0 md:pl-72">
 
             <div class="md:hidden bg-[#2B7A96] text-white p-4 shadow-md flex justify-between items-center z-10 w-full">
                 <a href="index.html" class="flex items-center gap-3 hover:opacity-90 transition-opacity" title="Ir al inicio">
@@ -248,13 +249,13 @@
         // bloque informativo cuando el usuario no tiene medicamentos concluidos aún
         function renderizarEstadoVacio(contenedor) {
             contenedor.innerHTML = `
-                                <div class="bg-white/80 md:bg-white rounded-2xl md:rounded-3xl p-8 text-center border border-gray-200 md:border-gray-100 shadow-sm flex flex-col items-center justify-center gap-3">
-                                    <div class="w-14 h-14 bg-crono-light rounded-full flex items-center justify-center text-crono-teal text-2xl">
-                                        ✅
-                                    </div>
-                                    <h3 class="font-bold text-gray-700 text-base md:text-lg">No hay historial aún</h3>
-                                    <p class="text-gray-500 text-xs md:text-sm max-w-sm">Los tratamientos médicos concluidos aparecerán automáticamente aquí.</p>
-                                </div>`;
+                                    <div class="bg-white/80 md:bg-white rounded-2xl md:rounded-3xl p-8 text-center border border-gray-200 md:border-gray-100 shadow-sm flex flex-col items-center justify-center gap-3">
+                                        <div class="w-14 h-14 bg-crono-light rounded-full flex items-center justify-center text-crono-teal text-2xl">
+                                            ✅
+                                        </div>
+                                        <h3 class="font-bold text-gray-700 text-base md:text-lg">No hay historial aún</h3>
+                                        <p class="text-gray-500 text-xs md:text-sm max-w-sm">Los tratamientos médicos concluidos aparecerán automáticamente aquí.</p>
+                                    </div>`;
         }
 
         // --- Carga del historial ---
@@ -303,34 +304,34 @@
                     // datos del perfil al que pertenecía el tratamiento
                     const infoPerfil = med.perfil
                         ? `<div class="mb-3 pb-2 border-b border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                                           <span>${med.perfil.nombre || ''} ${med.perfil.relacion ? `(${med.perfil.relacion})` : ''}</span>
-                                           ${med.perfil.fechaNacimiento ? `<span>Fecha nacimiento: ${med.perfil.fechaNacimiento}</span>` : ''}
-                                       </div>`
+                                               <span>${med.perfil.nombre || ''} ${med.perfil.relacion ? `(${med.perfil.relacion})` : ''}</span>
+                                               ${med.perfil.fechaNacimiento ? `<span>Fecha nacimiento: ${med.perfil.fechaNacimiento}</span>` : ''}
+                                           </div>`
                         : '';
 
                     const card = document.createElement("div");
                     card.className = "bg-white/70 md:bg-white rounded-2xl md:rounded-3xl p-5 md:p-6 shadow-sm border border-gray-200 md:border-gray-100 relative hover:shadow-md transition-shadow group";
 
                     card.innerHTML = `
-                                        ${infoPerfil}
-                                        <!-- Zona principal clickeable para abrir el desglose en finalizado.html -->
-                                        <div class="flex items-center gap-4 cursor-pointer" onclick="window.location.href='finalizado.html?id=${idMed}'">
-                                            <div class="w-11 h-11 md:w-12 md:h-12 bg-crono-light md:bg-gray-100 rounded-full flex items-center justify-center shrink-0 overflow-hidden group-hover:bg-gray-200 transition-colors">
-                                                ${iconoOImg}
+                                            ${infoPerfil}
+                                            <!-- Zona principal clickeable para abrir el desglose en finalizado.html -->
+                                            <div class="flex items-center gap-4 cursor-pointer" onclick="window.location.href='finalizado.html?id=${idMed}'">
+                                                <div class="w-11 h-11 md:w-12 md:h-12 bg-crono-light md:bg-gray-100 rounded-full flex items-center justify-center shrink-0 overflow-hidden group-hover:bg-gray-200 transition-colors">
+                                                    ${iconoOImg}
+                                                </div>
+                                                <div class="flex-1 pr-12">
+                                                    <h3 class="font-bold text-gray-700 md:text-crono-dark text-base md:text-lg leading-tight group-hover:text-crono-teal transition-colors uppercase">${med.nombreMedicamento}</h3>
+                                                    <p class="text-xs text-gray-500 mt-1">Concluyó el: ${med.fechaFin} | Vía: ${med.viaAdministracion}</p>
+                                                    <p class="text-xs text-crono-teal font-semibold mt-0.5">Tomas tomadas: ${med.tomasTomadas} de ${med.tomasTotales}</p>
+                                                </div>
                                             </div>
-                                            <div class="flex-1 pr-12">
-                                                <h3 class="font-bold text-gray-700 md:text-crono-dark text-base md:text-lg leading-tight group-hover:text-crono-teal transition-colors uppercase">${med.nombreMedicamento}</h3>
-                                                <p class="text-xs text-gray-500 mt-1">Concluyó el: ${med.fechaFin} | Vía: ${med.viaAdministracion}</p>
-                                                <p class="text-xs text-crono-teal font-semibold mt-0.5">Tomas tomadas: ${med.tomasTomadas} de ${med.tomasTotales}</p>
+                                            <!-- Botón de papelera para ocultar el registro del historial -->
+                                            <div class="absolute bottom-4 right-4 flex gap-3">
+                                                <button type="button" class="text-gray-400 hover:text-red-500 transition-colors z-10 btn-ocultar" title="Ocultar registro">
+                                                    <svg class="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                </button>
                                             </div>
-                                        </div>
-                                        <!-- Botón de papelera para ocultar el registro del historial -->
-                                        <div class="absolute bottom-4 right-4 flex gap-3">
-                                            <button type="button" class="text-gray-400 hover:text-red-500 transition-colors z-10 btn-ocultar" title="Ocultar registro">
-                                                <svg class="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                            </button>
-                                        </div>
-                                    `;
+                                        `;
 
                     const btnOcultar = card.querySelector(".btn-ocultar");
                     btnOcultar.addEventListener("click", async (e) => {
@@ -395,9 +396,9 @@
             } catch (error) {
                 console.error("Error:", error);
                 contenedor.innerHTML = `
-                                    <div class="bg-red-50 rounded-2xl p-6 text-center border border-red-200">
-                                        <p class="text-red-500 font-semibold text-sm">Error al cargar el historial de medicamentos.</p>
-                                    </div>`;
+                                        <div class="bg-red-50 rounded-2xl p-6 text-center border border-red-200">
+                                            <p class="text-red-500 font-semibold text-sm">Error al cargar el historial de medicamentos.</p>
+                                        </div>`;
             }
         }
     </script>

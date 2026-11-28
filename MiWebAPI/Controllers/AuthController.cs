@@ -2,9 +2,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
 using System.Data;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
+using System.IO.Compression;
 using System.Net;
 using System.Net.Mail;
+using System.Net.Mime;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json.Serialization;
 
 [Route("api/[controller]")]
@@ -38,6 +44,84 @@ public class AuthController : ControllerBase
     // CUENTA
     // ---------------------------------------------------------------
 
+    //[HttpPost("enviar-codigo")]
+    //public IActionResult EnviarCodigo([FromBody] EnviarCodigoDto modelo)
+    //{
+    //    if (string.IsNullOrWhiteSpace(modelo?.Correo))
+    //    {
+    //        return BadRequest(new { success = false, message = "Ingresa un correo electrónico." });
+    //    }
+
+    //    string correo = modelo.Correo.Trim().ToLower();
+
+    //    try
+    //    {
+    //        using (SqlConnection conn = new SqlConnection(CadenaSql))
+    //        {
+    //            conn.Open();
+
+    //            using (SqlCommand cmdCorreo = new SqlCommand("SELECT 1 FROM dbo.USUARIO WHERE CORREO = @Correo", conn))
+    //            {
+    //                cmdCorreo.Parameters.AddWithValue("@Correo", correo);
+    //                if (cmdCorreo.ExecuteScalar() != null)
+    //                {
+    //                    return BadRequest(new { success = false, message = "El correo ya está registrado." });
+    //                }
+    //            }
+
+    //            string codigo8 = string.Empty;
+    //            bool existeEnBd = true;
+    //            int intentos = 0;
+
+    //            while (existeEnBd && intentos < 20)
+    //            {
+    //                codigo8 = RandomNumberGenerator.GetInt32(10000000, 100000000).ToString("D8");
+
+    //                using (SqlCommand cmdCodigo = new SqlCommand("SELECT 1 FROM dbo.USUARIO WHERE CODIGO_USUARIO = @Codigo", conn))
+    //                {
+    //                    cmdCodigo.Parameters.AddWithValue("@Codigo", codigo8);
+    //                    existeEnBd = cmdCodigo.ExecuteScalar() != null;
+    //                }
+
+    //                intentos++;
+    //            }
+
+    //            if (existeEnBd)
+    //            {
+    //                return StatusCode(500, new { success = false, message = "No se pudo generar un código único. Intenta de nuevo." });
+    //            }
+
+    //            _cache.Set($"codigo_reg_{correo}", codigo8, TimeSpan.FromMinutes(10));
+
+    //            var smtpSection = _configuration.GetSection("Smtp");
+    //            using (var client = new SmtpClient(smtpSection["Host"], int.Parse(smtpSection["Port"] ?? "587")))
+    //            {
+    //                client.EnableSsl = bool.Parse(smtpSection["EnableSsl"] ?? "true");
+    //                client.Credentials = new NetworkCredential(smtpSection["Usuario"], smtpSection["Password"]);
+
+    //                var mail = new MailMessage
+    //                {
+    //                    From = new MailAddress(smtpSection["Remitente"] ?? smtpSection["Usuario"]!, "CronoCare"),
+    //                    Subject = "Tu código de verificación de 8 dígitos",
+    //                    Body = $"Tu código para completar el registro es: {codigo8}\n\nEste código vence en 10 minutos.",
+    //                    IsBodyHtml = false
+    //                };
+    //                mail.To.Add(correo);
+    //                client.Send(mail);
+    //            }
+
+    //            return Ok(new { success = true, message = "Código de 8 dígitos enviado a tu correo." });
+    //        }
+    //    }
+    //    catch (SqlException ex)
+    //    {
+    //        return RespuestaError(ex);
+    //    }
+    //    catch (Exception)
+    //    {
+    //        return StatusCode(500, new { success = false, message = "No se pudo enviar el correo. Revisa la configuración SMTP." });
+    //    }
+    //}
     [HttpPost("enviar-codigo")]
     public IActionResult EnviarCodigo([FromBody] EnviarCodigoDto modelo)
     {
@@ -87,20 +171,63 @@ public class AuthController : ControllerBase
 
                 _cache.Set($"codigo_reg_{correo}", codigo8, TimeSpan.FromMinutes(10));
 
-                var smtpSection = _configuration.GetSection("Smtp");
-                using (var client = new SmtpClient(smtpSection["Host"], int.Parse(smtpSection["Port"] ?? "587")))
-                {
-                    client.EnableSsl = bool.Parse(smtpSection["EnableSsl"] ?? "true");
-                    client.Credentials = new NetworkCredential(smtpSection["Usuario"], smtpSection["Password"]);
+                string htmlCuerpo = @"
+<!DOCTYPE html>
+<html lang=""es"">
+<head>
+    <meta charset=""UTF-8"">
+</head>
+<body style=""margin: 0; padding: 28px 16px; background-color: #f4f7f8; font-family: Arial, Helvetica, sans-serif; text-align: center;"">
+    <div style=""max-width: 460px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; padding: 28px 24px; box-shadow: 0 6px 20px rgba(0,0,0,0.06);"">
+        <p style=""margin: 0 0 18px 0; font-size: 16px; color: #222222;"">
+            Tu código de verificación para completar el registro a cronocare es :
+        </p>
 
-                    var mail = new MailMessage
+        <div style=""margin: 12px 0 18px 0;"">
+            <img src=""cid:codigoImagen"" alt=""Código de verificación"" style=""display: block; margin: 0 auto; max-width: 100%; height: auto; border-radius: 10px;"" />
+        </div>
+
+        <p style=""margin: 0; font-size: 14px; color: #444444;"">
+            Este código vence en 10 minutos
+        </p>
+    </div>
+</body>
+</html>";
+
+                var smtpSection = _configuration.GetSection("Smtp");
+                string host = smtpSection["Host"] ?? throw new InvalidOperationException("Falta Smtp:Host.");
+                int port = int.Parse(smtpSection["Port"] ?? "587");
+                bool enableSsl = bool.Parse(smtpSection["EnableSsl"] ?? "true");
+                string usuario = smtpSection["Usuario"] ?? throw new InvalidOperationException("Falta Smtp:Usuario.");
+                string password = smtpSection["Password"] ?? throw new InvalidOperationException("Falta Smtp:Password.");
+                string remitente = string.IsNullOrWhiteSpace(smtpSection["Remitente"]) ? usuario : smtpSection["Remitente"]!;
+
+                using (var client = new SmtpClient(host, port))
+                {
+                    client.EnableSsl = enableSsl;
+                    client.Credentials = new NetworkCredential(usuario, password);
+
+                    using var mail = new MailMessage
                     {
-                        From = new MailAddress(smtpSection["Remitente"] ?? smtpSection["Usuario"]!, "CronoCare"),
-                        Subject = "Tu código de verificación de 8 dígitos",
-                        Body = $"Tu código para completar el registro es: {codigo8}\n\nEste código vence en 10 minutos.",
-                        IsBodyHtml = false
+                        From = new MailAddress(remitente, "CronoCare"),
+                        Subject = "Codigo de verificacion CronoCare",
+                        IsBodyHtml = true
                     };
                     mail.To.Add(correo);
+
+                    using var vistaHtml = AlternateView.CreateAlternateViewFromString(htmlCuerpo, Encoding.UTF8, "text/html");
+
+                    byte[] pngBytes = CrearPngCodigo8Digitos(codigo8);
+                    using var msImagen = new MemoryStream(pngBytes);
+
+                    var codigoRecurso = new LinkedResource(msImagen, "image/png")
+                    {
+                        ContentId = "codigoImagen",
+                        TransferEncoding = TransferEncoding.Base64
+                    };
+                    vistaHtml.LinkedResources.Add(codigoRecurso);
+
+                    mail.AlternateViews.Add(vistaHtml);
                     client.Send(mail);
                 }
 
@@ -111,10 +238,170 @@ public class AuthController : ControllerBase
         {
             return RespuestaError(ex);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return StatusCode(500, new { success = false, message = "No se pudo enviar el correo. Revisa la configuración SMTP." });
+            return StatusCode(500, new { success = false, message = $"No se pudo enviar el correo: {ex.Message}" });
         }
+    }
+
+    private static byte[] CrearPngCodigo8Digitos(string codigo8)
+    {
+        var glifos = new Dictionary<char, string[]>
+        {
+            ['0'] = ["01110", "10001", "10011", "10101", "11001", "10001", "01110"],
+            ['1'] = ["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
+            ['2'] = ["01110", "10001", "00001", "00110", "01000", "10000", "11111"],
+            ['3'] = ["11110", "00001", "00001", "01110", "00001", "00001", "11110"],
+            ['4'] = ["00010", "00110", "01010", "10010", "11111", "00010", "00010"],
+            ['5'] = ["11111", "10000", "11110", "00001", "00001", "10001", "01110"],
+            ['6'] = ["01110", "10000", "11110", "10001", "10001", "10001", "01110"],
+            ['7'] = ["11111", "00001", "00010", "00100", "01000", "01000", "01000"],
+            ['8'] = ["01110", "10001", "10001", "01110", "10001", "10001", "01110"],
+            ['9'] = ["01110", "10001", "10001", "01111", "00001", "00001", "01110"]
+        };
+
+        int ancho = 320;
+        int alto = 76;
+        int escala = 4;
+        int anchoDigito = 5 * escala;
+        int altoDigito = 7 * escala;
+        int espacioEntre = 10;
+
+        string digitos = (codigo8 ?? "").PadLeft(8, '0');
+        int totalAnchoTexto = digitos.Length * anchoDigito + (digitos.Length - 1) * espacioEntre;
+        int inicioX = Math.Max(0, (ancho - totalAnchoTexto) / 2);
+        int inicioY = Math.Max(0, (alto - altoDigito) / 2);
+
+        byte bgR = 40, bgG = 127, bgB = 137; // #287F89
+        byte[,] r = new byte[alto, ancho];
+        byte[,] g = new byte[alto, ancho];
+        byte[,] b = new byte[alto, ancho];
+
+        for (int y = 0; y < alto; y++)
+        {
+            for (int x = 0; x < ancho; x++)
+            {
+                r[y, x] = bgR;
+                g[y, x] = bgG;
+                b[y, x] = bgB;
+            }
+        }
+
+        for (int i = 0; i < digitos.Length; i++)
+        {
+            char c = digitos[i];
+            if (!glifos.TryGetValue(c, out var patron)) patron = glifos['0'];
+
+            int xBase = inicioX + i * (anchoDigito + espacioEntre);
+            for (int fy = 0; fy < 7; fy++)
+            {
+                for (int fx = 0; fx < 5; fx++)
+                {
+                    if (patron[fy][fx] == '1')
+                    {
+                        int pxStart = xBase + fx * escala;
+                        int pyStart = inicioY + fy * escala;
+                        for (int dy = 0; dy < escala; dy++)
+                        {
+                            for (int dx = 0; dx < escala; dx++)
+                            {
+                                int xx = pxStart + dx;
+                                int yy = pyStart + dy;
+                                if (xx >= 0 && xx < ancho && yy >= 0 && yy < alto)
+                                {
+                                    r[yy, xx] = 255;
+                                    g[yy, xx] = 255;
+                                    b[yy, xx] = 255;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        byte[] rawScanlines = new byte[alto * (1 + ancho * 3)];
+        int idx = 0;
+        for (int y = 0; y < alto; y++)
+        {
+            rawScanlines[idx++] = 0;
+            for (int x = 0; x < ancho; x++)
+            {
+                rawScanlines[idx++] = r[y, x];
+                rawScanlines[idx++] = g[y, x];
+                rawScanlines[idx++] = b[y, x];
+            }
+        }
+
+        byte[] compressedData;
+        using (var msComp = new MemoryStream())
+        {
+            using (var zStream = new ZLibStream(msComp, CompressionLevel.Optimal, leaveOpen: true))
+            {
+                zStream.Write(rawScanlines, 0, rawScanlines.Length);
+            }
+            compressedData = msComp.ToArray();
+        }
+
+        using var msPng = new MemoryStream();
+        msPng.Write([137, 80, 78, 71, 13, 10, 26, 10], 0, 8);
+
+        byte[] ihdrData = new byte[13];
+        WriteBigEndianInt32(ihdrData, 0, ancho);
+        WriteBigEndianInt32(ihdrData, 4, alto);
+        ihdrData[8] = 8;
+        ihdrData[9] = 2;
+        WritePngChunk(msPng, "IHDR", ihdrData);
+        WritePngChunk(msPng, "IDAT", compressedData);
+        WritePngChunk(msPng, "IEND", []);
+
+        return msPng.ToArray();
+    }
+
+    private static void WritePngChunk(Stream s, string type, byte[] data)
+    {
+        byte[] lenBytes = new byte[4];
+        WriteBigEndianInt32(lenBytes, 0, data.Length);
+        s.Write(lenBytes, 0, 4);
+
+        byte[] typeBytes = Encoding.ASCII.GetBytes(type);
+        s.Write(typeBytes, 0, 4);
+
+        if (data.Length > 0)
+        {
+            s.Write(data, 0, data.Length);
+        }
+
+        uint crc = ComputeCrc32(typeBytes, data);
+        byte[] crcBytes = new byte[4];
+        WriteBigEndianInt32(crcBytes, 0, unchecked((int)crc));
+        s.Write(crcBytes, 0, 4);
+    }
+
+    private static void WriteBigEndianInt32(byte[] buffer, int offset, int value)
+    {
+        buffer[offset] = (byte)((value >> 24) & 0xFF);
+        buffer[offset + 1] = (byte)((value >> 16) & 0xFF);
+        buffer[offset + 2] = (byte)((value >> 8) & 0xFF);
+        buffer[offset + 3] = (byte)(value & 0xFF);
+    }
+
+    private static uint ComputeCrc32(byte[] typeBytes, byte[] data)
+    {
+        uint crc = 0xFFFFFFFFu;
+        foreach (byte b in typeBytes)
+        {
+            crc ^= b;
+            for (int i = 0; i < 8; i++)
+                crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320u : (crc >> 1);
+        }
+        foreach (byte b in data)
+        {
+            crc ^= b;
+            for (int i = 0; i < 8; i++)
+                crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320u : (crc >> 1);
+        }
+        return crc ^ 0xFFFFFFFFu;
     }
 
     [HttpPost("registrar")]

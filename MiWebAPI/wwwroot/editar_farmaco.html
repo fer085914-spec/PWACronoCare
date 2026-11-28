@@ -54,44 +54,13 @@
 </head>
 <body class="min-h-screen bg-crono-light font-sans overflow-x-hidden flex flex-col text-crono-dark">
 
-    <!-- Menú lateral -->
-    <div id="sidebar" class="fixed inset-y-0 right-0 w-64 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
-        <div class="p-5 bg-crono-blue text-white flex justify-between items-center">
-            <span class="font-bold text-base">Menú CronoCare</span>
-            <button id="closeSidebar" class="text-white hover:text-gray-200">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
-        </div>
-        <div class="flex flex-col p-6 gap-5 text-sm">
-            <a href="index.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-lg">🏠</span> Inicio
-            </a>
-            <a href="hoy.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-lg">📅</span> Agenda de Hoy
-            </a>
-            <a href="perfiles.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-lg">👥</span> Perfiles
-            </a>
-            <a href="nuevo_farmaco.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-lg">➕</span> Nuevo Registro
-            </a>
-            <a href="listo.html" class="text-gray-700 hover:text-crono-teal font-semibold flex items-center gap-2">
-                <span class="text-lg">✅</span> Terminados
-            </a>
-            <hr>
-            <button id="btnCerrarSesionLateral" class="text-left text-red-500 hover:text-red-700 font-semibold flex items-center gap-2">
-                <span class="text-lg">🚪</span> Salir
-            </button>
-        </div>
-    </div>
-
     <!-- Fondo del menú lateral -->
     <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40 transition-opacity"></div>
 
     <div class="w-full min-h-screen relative flex flex-col md:flex-row flex-1">
 
-        <!-- Navegación lateral -->
-        <aside class="hidden md:flex md:w-72 md:shrink-0 md:flex-col md:justify-between bg-[#2B7A96] text-white md:min-h-screen md:sticky md:top-0 shadow-md z-20">
+        <!-- Navegación lateral (fija en escritorio) -->
+        <aside class="hidden md:flex md:w-72 md:shrink-0 md:flex-col md:justify-between bg-[#2B7A96] text-white md:fixed md:inset-y-0 md:left-0 md:h-screen md:overflow-y-auto">
             <div class="p-7 flex flex-col">
                 <a href="index.html" class="flex items-center gap-3.5 mb-9 pb-4 border-b border-white/15 hover:opacity-95 transition-opacity" title="Ir al inicio">
                     <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-white/30">
@@ -125,7 +94,7 @@
             </div>
         </aside>
 
-        <div class="flex-1 flex flex-col min-w-0">
+        <div class="flex-1 flex flex-col min-w-0 md:pl-72">
 
             <!-- Barra superior -->
             <div class="md:hidden bg-[#2B7A96] text-white p-4 shadow-md flex justify-between items-center z-10 w-full">
@@ -137,7 +106,8 @@
                 </a>
             </div>
 
-            <div class="flex-1 pb-24 md:pb-14 w-full max-w-xl md:max-w-4xl mx-auto flex flex-col p-6 md:px-12 md:pt-9 mt-4 md:mt-0">
+            <!-- Contenedor principal amplio y centrado dentro del área disponible en escritorio -->
+            <div id="contenedorPrincipalEditar" class="flex-1 pb-24 md:pb-14 w-full max-w-xl md:max-w-5xl mx-auto flex flex-col p-6 md:px-12 md:pt-9 mt-4 md:mt-0">
 
                 <!-- Encabezado y enlace para regresar al detalle -->
                 <div class="flex items-center mb-6 w-full">
@@ -151,8 +121,7 @@
                     </h2>
                 </div>
 
-                <!-- Formulario de edición del medicamento -->
-                <form id="formEditarMedicamento" class="bg-white p-6 md:p-10 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-5 md:gap-6">
+                <form id="formEditarMedicamento" class="w-full bg-white p-6 md:p-10 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-5 md:gap-6">
 
                     <div>
                         <label class="block text-sm font-bold text-crono-dark mb-2 pl-1">Nombre del medicamento:</label>
@@ -209,7 +178,6 @@
     </div>
 
     <script>
-        // Clave temporal donde se guarda la foto capturada antes de enviarla al backend
         const CLAVE_FOTO_TEMP = 'fotoMedicamentoTemp';
 
         const sidebar = document.getElementById('sidebar');
@@ -227,7 +195,6 @@
         if (closeBtn) closeBtn.addEventListener('click', toggleMenu);
         if (overlay) overlay.addEventListener('click', toggleMenu);
 
-        // --- Gestión de sesión ---
         function obtenerUsuarioSesion() {
             const guardado = localStorage.getItem("usuarioLogueado") || sessionStorage.getItem("empleados_usuario");
             if (!guardado) return null;
@@ -262,7 +229,6 @@
         document.getElementById('btnCerrarSesionLateral')?.addEventListener('click', cerrarSesion);
         document.getElementById('btnCerrarSesionPc')?.addEventListener('click', cerrarSesion);
 
-        // mostrar alertas con el estilo definido
         function mostrarAlertaCrono(titulo, mensaje, tipo = 'info') {
             return Swal.fire({
                 title: titulo,
@@ -278,7 +244,6 @@
             });
         }
 
-        // Mostrar u ocultar el aviso si ya hay una foto pendiente en sessionStorage
         function actualizarEstadoFotoPendiente() {
             const aviso = document.getElementById("avisoFotoNueva");
             const fotoPendiente = sessionStorage.getItem(CLAVE_FOTO_TEMP);
@@ -287,7 +252,27 @@
             }
         }
 
-        // Leer el id del fármaco desde la URL
+        function refrescarLayoutAlVolver() {
+            const contenedor = document.getElementById("contenedorPrincipalEditar");
+            const form = document.getElementById("formEditarMedicamento");
+
+            requestAnimationFrame(() => {
+                if (form) {
+                    form.style.width = "100%";
+                    form.style.maxWidth = "none";
+                }
+                if (contenedor) {
+                    void contenedor.offsetHeight;
+                }
+                requestAnimationFrame(() => {
+                    if (form) {
+                        form.style.width = "";
+                        form.style.maxWidth = "";
+                    }
+                });
+            });
+        }
+
         const params = new URLSearchParams(window.location.search);
         const idMedicamento = params.get("id");
 
@@ -301,16 +286,13 @@
                 return;
             }
 
-            // Configurar enlaces de regreso y captura de foto pasando el id actual
             document.getElementById("btnVolverDetalle").href = `detalle_farmaco.html?id=${idMedicamento}`;
             document.getElementById("btnActualizarFoto").href = `tomar_fotografia.html?id=${idMedicamento}`;
 
-            // Cargar catálogo de vías y los datos actuales del fármaco
             await cargarViasAdministracion();
             await cargarDatosMedicamento(usuario.id, idMedicamento);
             actualizarEstadoFotoPendiente();
 
-            // limpia foto temporal y vuelve al detalle sin guardar
             const btnDescartar = document.getElementById("btnDescartar");
             if (btnDescartar) {
                 btnDescartar.addEventListener("click", async () => {
@@ -338,13 +320,14 @@
             }
         });
 
-        // Actualiza el indicador de foto nueva al volver desde tomar_fotografia.html
-        window.addEventListener("pageshow", (event) => {
+        window.addEventListener("pageshow", () => {
             if (!verificarSesionActiva()) return;
             actualizarEstadoFotoPendiente();
+            refrescarLayoutAlVolver();
         });
 
-        // Llena el selector de vías de administración desde el catálogo
+        window.addEventListener("resize", refrescarLayoutAlVolver);
+
         async function cargarViasAdministracion() {
             try {
                 const response = await fetch('/api/Auth/catalogos/vias-administracion');
@@ -364,7 +347,6 @@
             }
         }
 
-        // Precarga los datos actuales del medicamento en los inputs del formulario
         async function cargarDatosMedicamento(idUsuario, idMed) {
             try {
                 const response = await fetch(`/api/Auth/medicamentos/detalle/${idUsuario}/${idMed}`);
@@ -387,7 +369,6 @@
                 document.getElementById("txtIntervalo").value = data.intervaloHoras || 8;
                 document.getElementById("txtDuracion").value = data.duracionDias || 5;
 
-                // Normaliza la hora a formato HH:mm"
                 if (data.horaPrimeraToma) {
                     let horaLimpia = data.horaPrimeraToma.toString();
                     if (horaLimpia.includes('T')) {
@@ -402,7 +383,6 @@
             }
         }
 
-        // Envía los cambios del formulario al endpoint PUT
         document.getElementById("formEditarMedicamento").addEventListener("submit", async (e) => {
             e.preventDefault();
             if (!verificarSesionActiva()) return;
@@ -434,7 +414,6 @@
                     throw new Error(resultado.message || "Error al actualizar el medicamento.");
                 }
 
-                // Limpia la foto temporal cuando el backend confirmó el guardado
                 sessionStorage.removeItem(CLAVE_FOTO_TEMP);
                 actualizarEstadoFotoPendiente();
 
