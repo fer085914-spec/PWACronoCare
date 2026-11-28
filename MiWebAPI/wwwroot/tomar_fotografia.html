@@ -93,7 +93,8 @@
 
     <div class="w-full min-h-screen relative flex flex-col md:flex-row flex-1">
 
-        <aside class="hidden md:flex md:w-72 md:shrink-0 md:flex-col md:justify-between bg-[#2B7A96] text-white md:min-h-screen md:sticky md:top-0 shadow-md z-20">
+        <!-- CAMBIO 1: Barra lateral fija en escritorio -->
+        <aside class="hidden md:flex md:w-72 md:shrink-0 md:flex-col md:justify-between md:fixed md:inset-y-0 md:left-0 md:h-screen md:overflow-y-auto bg-[#2B7A96] text-white shadow-md z-20">
             <div class="p-7 flex flex-col">
                 <a href="index.html" class="flex items-center gap-3.5 mb-9 pb-4 border-b border-white/15 hover:opacity-95 transition-opacity" title="Ir al inicio">
                     <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-white/30">
@@ -134,7 +135,8 @@
             </div>
         </aside>
 
-        <div class="flex-1 flex flex-col min-w-0">
+        <!-- CAMBIO 2: Se agrega md:pl-72 para que el contenido principal se desplace junto al menú fijo -->
+        <div class="flex-1 flex flex-col min-w-0 md:pl-72">
 
             <!-- Encabezado superior móvil con disparador para el menú lateral -->
             <div class="md:hidden bg-[#2B7A96] text-white p-4 shadow-md flex justify-between items-center z-10 w-full">
